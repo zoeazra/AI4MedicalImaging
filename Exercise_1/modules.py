@@ -166,9 +166,7 @@ class TanhModule(object):
           x: input to the module
         Returns:
           out: output of the module
-        TODO: Implement forward pass of the module. To stabilize computation you should use the so-called Max Trick
-        TODO: https://timvieira.github.io/blog/post/2014/02/11/exp-normalize-trick/
-        TODO: Hint: You can store intermediate variables inside the object. They can be used in backward pass computation.
+        TODO: Implement forward pass of the module.
         """
 
         self.x = x
@@ -186,7 +184,7 @@ class TanhModule(object):
         """
         Backward pass.
         Args:
-          dout: gradients of the previous modul
+          dout: gradients of the previous module
         Returns:
           dx: gradients with respect to the input of the module
         TODO: Implement backward pass of the module.
@@ -219,8 +217,8 @@ class MSE:
         """
         Forward pass.
         Args:
-          x: input to the module
-          y: labels of the input
+          x: predicted values
+          y: ground truth values
         Returns:
           out: MSE
         TODO: Implement forward pass of the module.
@@ -239,9 +237,6 @@ class MSE:
     def backward(self):
         """
         Backward pass.
-        Args:
-          x: input to the module
-          y: labels of the input
         Returns:
           dx: gradient of the loss with the respect to the input x.
         TODO: Implement backward pass of the module.
