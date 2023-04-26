@@ -115,13 +115,8 @@ class IVIM(nn.Module):
         TODO:
         Implement forward pass of the network.
         """
-        #######################
-        # PUT YOUR CODE HERE  #
-        #######################
+        x = f * torch.exp(-self.bvalues * Dp) + (1-f) * torch.exp(-self.bvalues * D)
 
-        #######################
-        # END OF YOUR CODE    #
-        #######################
 
         return x
 
