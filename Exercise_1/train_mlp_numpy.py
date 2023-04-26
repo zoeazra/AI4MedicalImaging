@@ -67,7 +67,7 @@ def train(hidden_dims, lr, batch_size, epochs, seed, parallel=True, bvalues=[0, 
     data_sim, D, f, Dp = dl.sim_signal(bvalues=bvalues,sims=2000000,seed=np.random.randint(1,10000))
     data_sim_ev, D_val, f_val, Dp_val = dl.sim_signal(bvalues=bvalues,sims=10000,seed=np.random.randint(1,10000))
     data_sim_ev=np.transpose(data_sim_ev)
-    model = MLP(np.size(data_sim, 1), hidden_dims, 3)
+    model = MLP(np.size(data_sim, 1), hidden_dims, 1)
 
     #######################
     # PUT (and edit) YOUR CODE HERE  #
