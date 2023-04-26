@@ -168,7 +168,9 @@ def train_self_supervised(data, hidden_dims, lr, batch_size, epochs, seed,
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-
+    # Todo: note you can recylce a lot of the code from the supervised training and only need to introduce a unsupervised loss.
+    # ToDo: note for the unsupervised loss you will need D, f and D* to be predicted by the network (3 outputs v.s. 1 in ex 4)
+    # Todo: implement supervised loss
     #######################
     # END OF YOUR CODE    #
     #######################

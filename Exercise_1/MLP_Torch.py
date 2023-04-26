@@ -86,10 +86,49 @@ class MLP(nn.Module):
         """
         return next(self.parameters()).device
 
-#######################
-# PUT YOUR ivim CODE HERE ex 5.2 #
-#######################
 
-#######################
-# END OF YOUR CODE    #
-#######################
+class IVIM(nn.Module):
+    """
+    This class implements the IVIM function in pytorch; only needed for ex 5.2
+    """
+
+    def __init__(self,bvalues):
+        """
+        Initializes IVIM object.
+        Args:
+          bvalues: bvalues
+
+        """
+        super().__init__()
+        self.bvalues=torch.tensor(bvalues)
+        pass
+
+    def forward(self, D, f, Dp):
+        """
+        Performs forward pass of the input.
+        Args:
+          D: input to the model
+          f: input to the model
+          Dp: input to the model
+        Returns:
+          out: outputs of the model
+        TODO:
+        Implement forward pass of the network.
+        """
+        #######################
+        # PUT YOUR CODE HERE  #
+        #######################
+
+        #######################
+        # END OF YOUR CODE    #
+        #######################
+
+        return x
+
+    @property
+    def device(self):
+        """
+        Returns the device on which the model is. Can be useful in some situations.
+        """
+        return next(self.parameters()).device
+
