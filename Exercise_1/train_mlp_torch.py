@@ -10,9 +10,11 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to conditions.
 #
-# Author: Deep Learning Course (UvA) | Fall 2022 & Oliver Gurney-Champion | Spring 2023
+# Author: Deep Learning for Medical Imaging Amsterdam UMC Oliver Gurney-Champion | Spring 2023
+# adapted from Deep Learning Course (UvA) | Fall 2022
 # Date modified: Jan 2023
 ################################################################################
+
 """
 This module implements training and evaluation of a multi-layer perceptron in NumPy.
 You should fill in code into indicated sections.
@@ -132,7 +134,7 @@ def train(hidden_dims, lr, batch_size, epochs, seed,
     return model
 
 
-
+# exercise 5.2
 def train_self_supervised(data, hidden_dims, lr, batch_size, epochs, seed,
           bvalues=[0, 1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 300, 500, 700, 850, 1000],
           optimizer_option='sgd'):

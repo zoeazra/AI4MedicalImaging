@@ -10,9 +10,11 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to conditions.
 #
-# Author: Deep Learning Course (UvA) | Fall 2022 & Oliver Gurney-Champion | Spring 2023
+# Author: Deep Learning for Medical Imaging Amsterdam UMC Oliver Gurney-Champion | Spring 2023
+# adapted from Deep Learning Course (UvA) | Fall 2022
 # Date modified: Jan 2023
 ################################################################################
+
 """
 This module implements various modules of the network.
 You should fill in code into indicated sections.

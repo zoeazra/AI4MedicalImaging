@@ -10,9 +10,10 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to conditions.
 #
-# Author: Deep Learning Course (UvA) | Fall 2022 & Oliver Gurney-Champion | Spring 2023
+# Author: Deep Learning for Medical Imaging Amsterdam UMC Oliver Gurney-Champion | Spring 2023
 # Date modified: Jan 2023
 ################################################################################
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function

@@ -10,9 +10,11 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to conditions.
 #
-# Author: Deep Learning Course (UvA) | Fall 2022 & Oliver Gurney-Champion | Spring 2023
+# Author: Deep Learning for Medical Imaging Amsterdam UMC Oliver Gurney-Champion | Spring 2023
+# adapted from Deep Learning Course (UvA) | Fall 2022
 # Date modified: Jan 2023
 ################################################################################
+
 """
 This module implements training and evaluation of a multi-layer perceptron in NumPy.
 You should fill in code into indicated sections.
@@ -67,47 +69,49 @@ def train(hidden_dims, lr, batch_size, epochs, seed, parallel=True, bvalues=[0, 
     data_sim_ev=np.transpose(data_sim_ev)
     model = MLP(np.size(data_sim, 1), hidden_dims, 3)
 
-    # for combined network: Dw = 1/mean f_w=10/mean Dp_w = 10/mean --> lr = 0.00001, 10 epochs
-
     #######################
     # PUT (and edit) YOUR CODE HERE  #
     #######################
-    # TODO: Initialize loss modules
+    # TODO: Initialize loss modules. You will also want to generate lists to save the loss values over epochs for plotting training progress
 
     # loop over epochs
-    # TODO: add your code
+
     for a in range(epochs):
+        # setup random shuffle of data to ensure random data selection per batch
         print("starting epoch "+str(a))
         batchnums=list(range(len(D)))
         random.shuffle(batchnums)
+        # TODO: reset losses
 
         # loop over batches -->
         # TODO: add your code for training the network
         for i in range(int(np.floor(len(batchnums)/batch_size))):
+            # the code selects the batch data and ground truth references
             batch=batchnums[i*batch_size:i*batch_size+batch_size]
             x = np.transpose(data_sim[batch])
             D_ref = D[batch]
             f_ref = f[batch]
             Dp_ref = Dp[batch]
-
+            # TODO: put your data through the network, calculate the loss, backpropagate the loss and update weights,
             # TODO: don't forget to save logging info on the loss
             #  loss_curve containing a list fo the total loss each epoch
 
 
-        # TODO: evaluate validation data (can be done in a loop, or all validation can be put through the network in 1 go
+        # TODO: evaluate validation data data_sim_ev (can be done in a loop, or all validation can be put through the network in 1 go
         #  loss_curve_val containing a list fo the total validation loss each epoch
 
-        # TODO: save losses such that you can plot progres using plot_results below. Note there are nany options in plot
+        # TODO: save losses such that you can plot progres using plot_results below. Note there are many options in plot
         #  results that you may want to utalize if you do additional exercises. But for the basic exercise you only need
         #  to options below.
-
+        # plot your results. Note you will need to generate the different inputs throughout your code for the plotting to work.
+        # Note that f_pred and D_ref, f_ref, and Dp_ref should be the last values of your validation dataset (which will be plotted)
         plot_results(D_ref, f_ref, Dp_ref, loss_train=loss_curve, f_pred=f_pred, data=np.transpose(x),
                      bvalues=bvalues, val_loss=loss_curve_val)
     #######################
     # END OF YOUR CODE    #
     #######################
 
-    # final evaluation: f_pred_val=the f_pred list from the validation data
+    # final evaluation: f_pred_val=the f_pred list from the final validation data and f_val is the reference of your validation
     SD, sys = error_metrics(f_pred_val,f_val)
     print('the systematic error is ' + str(sys) + ' and the random error is ' + str(SD))
 
