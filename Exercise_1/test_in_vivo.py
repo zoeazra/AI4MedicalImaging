@@ -54,7 +54,7 @@ def eval_in_vivo(hidden_dims, lr, batch_size, epochs, seed,
     data, valid_id, bvalues = dl.load_real_data(eval=True)
     network = train(hidden_dims, lr, batch_size, epochs, seed,
           bvalues=bvalues,optimizer_option=optimizer_option)
-    out_supervised = network[1].forward(nn.tensor(data)).cpu().detach().numpy()
+    out_supervised = network.forward(nn.tensor(data)).cpu().detach().numpy()
 
     #######################
     # PUT YOUR CODE HERE  #
