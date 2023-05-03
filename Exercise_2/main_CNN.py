@@ -24,7 +24,7 @@ import torchmetrics
 import torch.nn.functional as F
 from sys import platform
 from Data_loader import Scan_Dataset, Scan_DataModule
-from Exercise_2.visualization import show_data
+from visualization import show_data
 from CNNs import SimpleConvNet
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger

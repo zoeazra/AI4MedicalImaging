@@ -26,7 +26,7 @@ import nibabel as nib
 
 from sys import platform
 from Data_loader import Scan_Dataset_Segm, Scan_DataModule_Segm, ToTensor_Seg
-from Exercise_2.visualization import show_data_Unet
+from visualization import show_data_Unet
 from CNNs import UNet
 from torchvision import transforms
 import pytorch_lightning as pl
