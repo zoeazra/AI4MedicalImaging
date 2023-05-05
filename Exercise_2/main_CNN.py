@@ -32,7 +32,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 
 #seeding for reproducible results
 SEED=42
-torch.backends.cudnn.deterministic = True
+#torch.backends.cudnn.deterministic = True
 torch.manual_seed(SEED)
 torch.cuda.manual_seed_all(SEED)
 np.random.seed(SEED)
@@ -131,7 +131,7 @@ def run(config):
         checkpoint_callback = pl.callbacks.ModelCheckpoint(monitor='val_f1')
         trainer = pl.Trainer(accelerator=device, max_epochs=config['max_epochs'],
                              logger=logger, callbacks=[checkpoint_callback],
-                             default_root_dir=config['bin'], deterministic=True,
+                             default_root_dir=config['bin'],
                              log_every_n_steps=1,
                              devices=1 if device == 'cuda' else 3)
         trainer.fit(classifier, data)
