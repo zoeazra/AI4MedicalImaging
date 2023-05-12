@@ -13,7 +13,7 @@ def visualize_input_and_prediction(input_path, prediction_path):
     f, (ax1, ax2) = plt.subplots(1, 2)
     ax1.imshow(input_array.squeeze())
     ax2.imshow(prediction_array.squeeze())
-
+    plt.show()
 
 def show_data(dataset,index,n_images_display = 5):
     fig, ax = plt.subplots(1, n_images_display, figsize=(20, 5))
@@ -25,6 +25,7 @@ def show_data(dataset,index,n_images_display = 5):
         ax[i].axis('off')
     plt.suptitle(
         f'Skin Cancer Images [Indices: {index} - {index + n_images_display} - Images Shape: {dataset[0][0].shape}]');
+    plt.show()
 
 
 def show_data_Unet(dataset,index,n_images_display = 5):
@@ -40,3 +41,4 @@ def show_data_Unet(dataset,index,n_images_display = 5):
         ax[i].axis('off')
     plt.suptitle(
         f"Skin Cancer Images [Indices: {index} - {index + n_images_display} - Images Shape: {dataset[0]['image'].shape}]");
+    plt.show()
