@@ -15,7 +15,7 @@ def visualize_input_and_prediction(input_path, prediction_path):
     ax2.imshow(prediction_array.squeeze())
     plt.show()
 
-def show_data(dataset,index,n_images_display = 5):
+def show_data(dataset,index,n_images_display = 5, message = 'Raw data'):
     fig, ax = plt.subplots(1, n_images_display, figsize=(20, 5))
     for i in range(n_images_display):
         image, label = dataset[index + i]
@@ -24,7 +24,7 @@ def show_data(dataset,index,n_images_display = 5):
         ax[i].set_title(f'Cancer : {"Yes" if label else "No"}')
         ax[i].axis('off')
     plt.suptitle(
-        f'Skin Cancer Images [Indices: {index} - {index + n_images_display} - Images Shape: {dataset[0][0].shape}]');
+        f'{message} of Skin Cancer Images [Indices: {index} - {index + n_images_display} - Images Shape: {dataset[0][0].shape}]');
     plt.show()
 
 
@@ -42,3 +42,17 @@ def show_data_Unet(dataset,index,n_images_display = 5):
     plt.suptitle(
         f"Skin Cancer Images [Indices: {index} - {index + n_images_display} - Images Shape: {dataset[0]['image'].shape}]");
     plt.show()
+
+def show_augmentation_data(data_module,index=0,n_images_display = 5):
+    # initialize dataloaders
+    data_module.setup()
+    traindata = data_module.train_dataloader().dataset
+    # dimensions need to be tranposed
+    traindata_T = []
+    i=0
+    for image, label in traindata:
+        if i>index-1:
+            if i<n_images_display+index:
+                traindata_T.append((np.array(image).transpose(1, 2, 0), np.array(label)))
+    show_data(traindata_T,index=0,n_images_display=n_images_display,message = 'Augmented data')
+    return

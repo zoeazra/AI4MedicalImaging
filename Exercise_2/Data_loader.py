@@ -11,14 +11,16 @@ from torchvision import transforms
 
 # Data loader
 class Scan_DataModule(pl.LightningDataModule):
-  def __init__(self, config):
+  def __init__(self, config,transform=True):
     super().__init__()
     self.train_data_dir   = config['train_data_dir']
     self.val_data_dir     = config['val_data_dir']
     self.test_data_dir    = config['test_data_dir']
     self.batch_size       = config['batch_size']
-
-    self.train_transforms = transforms.Compose([Random_Rotate(0.1), transforms.ToTensor()])
+    if transform:
+      self.train_transforms = transforms.Compose([Random_Rotate(0.1), transforms.ToTensor()])
+    else:
+      self.train_transforms = transforms.Compose([transforms.ToTensor()])
     self.val_transforms  = transforms.Compose([transforms.ToTensor()])
 
   def setup(self, stage=None):
@@ -37,14 +39,17 @@ class Scan_DataModule(pl.LightningDataModule):
 
 
 class Scan_DataModule_Segm(pl.LightningDataModule):
-  def __init__(self, config):
+  def __init__(self, config, transform=False):
     super().__init__()
     self.train_data_dir   = config['train_data_dir']
     self.val_data_dir     = config['val_data_dir']
     # self.test_data_dir    = config['test_data_dir']
     self.batch_size       = config['batch_size']
 
-    self.train_transforms = transforms.Compose([Random_Rotate_Seg(0.1), ToTensor_Seg()])
+    if transform:
+      self.train_transforms = transforms.Compose([Random_Rotate(0.1), transforms.ToTensor()])
+    else:
+      self.train_transforms = transforms.Compose([transforms.ToTensor()])
     self.val_transforms   = transforms.Compose([ToTensor_Seg()])
 
   def setup(self, stage=None):

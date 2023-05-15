@@ -24,7 +24,7 @@ import torchmetrics
 import torch.nn.functional as F
 from sys import platform
 from Data_loader import Scan_Dataset, Scan_DataModule
-from visualization import show_data
+from visualization import show_data, show_augmentation_data
 from CNNs import SimpleConvNet
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -52,6 +52,15 @@ nn_set = 'train' # ['train', 'val', 'test']
 index = 0
 dataset = Scan_Dataset(os.path.join(data_dir, nn_set))
 show_data(dataset,index,n_images_display=5)
+config_dummy=({
+    'train_data_dir': os.path.join(data_dir, 'train'),
+    'val_data_dir': os.path.join(data_dir, 'val'),
+    'test_data_dir': os.path.join(data_dir, 'test'),
+    'batch_size':16,
+    'bin': 'models/'})
+data = Scan_DataModule(config_dummy,transform=True)
+show_augmentation_data(data)
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 torch.device(device)
 
