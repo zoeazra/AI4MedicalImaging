@@ -42,7 +42,7 @@ class SimpleConvNet(pl.LightningModule):
         return x
 
 
-class UNet(nn.Module):
+class UNet(pl.LightningModule):
   def __init__(self, n_classes=1, in_ch=3):
       super().__init__()
       #######################
