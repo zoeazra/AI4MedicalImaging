@@ -18,6 +18,8 @@
 """
 This module implements various modules of the network.
 You should fill in code into indicated sections.
+
+3 A.	Program the different neural network modules in “modules.py”. Use “do_unittest.py” to test whether the forward and backward passes are correct. Make only use of matrix multiplications, no for loops. Points will be deduced when for-loops are used where matrix multiplications were possible.
 """
 import numpy as np
 

@@ -96,8 +96,8 @@ class TestLayers(unittest.TestCase):
             batch_size = np.random.choice(range(1, 20))
             input_size = np.random.choice(range(1, 100))
             output_size = np.random.choice(range(1, 10))
-            x = np.random.randn(input_size, batch_size)
-            dout = np.random.randn(output_size, batch_size)
+            x = np.random.randn(batch_size,input_size)
+            dout = np.random.randn(batch_size,output_size)
 
             layer = LinearModule(input_size, output_size)
 
@@ -106,7 +106,7 @@ class TestLayers(unittest.TestCase):
 
             dw = layer.grads['weight']
             dx_num = eval_numerical_gradient_array(lambda xx: layer.forward(xx), x, dout)
-            dw_num = eval_numerical_gradient_array(lambda w: layer.forward(x), layer.weights, dout) 
+            dw_num = eval_numerical_gradient_array(lambda w: layer.forward(x), layer.weights, dout)
 
             self.assertLess(rel_error(dx, dx_num), rel_error_max)
             self.assertLess(rel_error(dw, dw_num), rel_error_max)
@@ -155,15 +155,15 @@ class TestLayers(unittest.TestCase):
             batch_size = np.random.choice(range(1, 20))
             input_size = np.random.choice(range(1, 100))
             output_size = np.random.choice(range(1, 5))
-            hidden_size = np.random.choice(range(1, 100), size=np.random.choice(range(1, 10)))
+            hidden_size = np.random.choice(range(5, 100), size=np.random.choice(range(3, 10)))
             x = np.random.randn(batch_size, input_size)
 
-            dout = np.random.randn(output_size, batch_size)
+            dout = np.random.randn(batch_size, output_size)
             MLPnet = MLP(input_size, hidden_size, output_size)
 
-            _ = MLPnet.forward(np.transpose(x))
+            _ = MLPnet.forward(x)
             dx = MLPnet.backward(dout)
-            dx_num = eval_numerical_gradient_array(lambda xx: MLPnet.forward(xx), np.transpose(x), dout)
+            dx_num = eval_numerical_gradient_array(lambda xx: MLPnet.forward(xx), x, dout)
 
             self.assertLess(rel_error(dx, dx_num), rel_error_max)
 

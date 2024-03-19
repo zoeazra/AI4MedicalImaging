@@ -163,6 +163,7 @@ def plot_example(input, valid_id,vmax=0.7):
     plt.pause(0.001)
     pass
 
+
 def plot_ref():
     folder = 'data'
     dataD = nib.load('{folder}/D.nii.gz'.format(folder=folder))
@@ -182,3 +183,19 @@ def plot_ref():
     plt.show()
     plt.pause(0.001)
     pass
+
+def error_metrics(par_pred,par_ref):
+    """
+    Computes the random and systematic errors from the prediction.
+    Args:
+      par_pred: 1D float array of size [n], predictions of the model
+      par_ref: 1D float array of size [n]. Ground truth reference for each sample
+    Returns:
+      CV: random error (coefficient of variation)
+      Sys: systematic error
+    """
+
+    CV = np.std(par_pred-par_ref)
+    sys = np.mean(par_pred-par_ref)
+
+    return CV, sys
