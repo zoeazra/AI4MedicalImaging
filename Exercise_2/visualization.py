@@ -1,7 +1,7 @@
 import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt
-
+import cv2
 
 def visualize_input_and_prediction(input_path, prediction_path):
     input_array = nib.load(input_path).get_fdata()
@@ -19,6 +19,8 @@ def show_data(dataset,index,n_images_display = 5, message = 'Raw data'):
     fig, ax = plt.subplots(1, n_images_display, figsize=(20, 5))
     for i in range(n_images_display):
         image, label = dataset[index + i]
+        if np.shape(image)[0] == 3:
+            image = np.einsum('abc->bca',image)
         ax[i].imshow(np.uint8(image))
         # ax[i].imshow(np.uint8(np.transpose(image, (1, 2, 0))));
         ax[i].set_title(f'Cancer : {"Yes" if label else "No"}')
@@ -26,6 +28,7 @@ def show_data(dataset,index,n_images_display = 5, message = 'Raw data'):
     plt.suptitle(
         f'{message} of Skin Cancer Images [Indices: {index} - {index + n_images_display} - Images Shape: {dataset[0][0].shape}]');
     plt.show()
+    return fig
 
 
 def show_data_Unet(dataset,index,n_images_display = 5):
@@ -35,6 +38,10 @@ def show_data_Unet(dataset,index,n_images_display = 5):
         sample = dataset[index + i]
         image, mask = sample['image'], sample['mask']
         image, mask = np.uint8(image), np.uint8(mask)
+        if np.shape(image)[0] == 3:
+            image = np.einsum('abc->bca', image)
+        if np.shape(mask)[0] == 1:
+            mask = np.einsum('abc->bca', mask)
         edge = cv2.Canny(mask * 255, 100, 200)
         image[edge > 0] = (0, 255, 0)
         ax[i].imshow(image)
@@ -43,16 +50,36 @@ def show_data_Unet(dataset,index,n_images_display = 5):
         f"Skin Cancer Images [Indices: {index} - {index + n_images_display} - Images Shape: {dataset[0]['image'].shape}]");
     plt.show()
 
-def show_augmentation_data(data_module,index=0,n_images_display = 5):
-    # initialize dataloaders
-    data_module.setup()
-    traindata = data_module.train_dataloader().dataset
-    # dimensions need to be tranposed
-    traindata_T = []
-    i=0
-    for image, label in traindata:
-        if i>index-1:
-            if i<n_images_display+index:
-                traindata_T.append((np.array(image).transpose(1, 2, 0), np.array(label)))
-    show_data(traindata_T,index=0,n_images_display=n_images_display,message = 'Augmented data')
-    return
+
+def show_data_logger(dataset,index,pred,n_images_display = 5, message = 'Raw data'):
+    fig, ax = plt.subplots(1, n_images_display, figsize=(50, 20))
+    image, label = dataset
+    image = image.to('cpu')
+    label = label.to('cpu')
+    if np.shape(image)[1] == 3:
+        image = np.einsum('dabc->dbca', image)
+    for i in range(n_images_display):
+        ax[i].imshow(np.uint8(image[i]))
+        # ax[i].imshow(np.uint8(np.transpose(image, (1, 2, 0))));
+        ax[i].set_title(f'Cancer : {"Yes" if label[i] else "No"}, predict:{pred[i]}')
+        ax[i].axis('off')
+    return fig
+
+def show_data_logger_Unet(dataset,index,pred,n_images_display = 5,message = 'Raw data'):
+    # @title Visualizing Images { run: 'auto'}
+    fig, ax = plt.subplots(1, n_images_display, figsize=(50, 20))
+    image, mask = dataset['image'].to('cpu'), dataset['mask'].to('cpu')
+    if np.shape(image)[1] == 3:
+        image = np.einsum('dabc->dbca', image)
+    if np.shape(mask)[1] == 1:
+        mask = np.einsum('dabc->dbca', mask)
+    if np.shape(pred)[1] == 1:
+        pred = np.einsum('dabc->dbca', pred)
+    for i in range(n_images_display):
+        edge = cv2.Canny(mask[i] * 255, 100, 200)
+        image[edge > 0] = (0, 255, 0)
+        edgepred = cv2.Canny(pred[i] * 255, 100, 200)
+        image[edgepred > 0] = (0, 0, 255)
+        ax[i].imshow(image[i])
+        ax[i].axis('off')
+    plt.show()

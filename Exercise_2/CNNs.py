@@ -52,16 +52,11 @@ class UNet(pl.LightningModule):
       c = [16, 32, 64, 128]
 
       # first convolution layer receiving the image
-
-
       # encoder layers
-
 
       # decoder layers
 
-
       # last layer returning the output
-
       #######################
       # END OF YOUR CODE    #
       #######################
@@ -79,4 +74,41 @@ class UNet(pl.LightningModule):
       return x
 
 
+def conv3x3_bn(ci, co):
+    #######################
+    # Start YOUR CODE    #
+    #######################
 
+    #######################
+    # end YOUR CODE    #
+    #######################
+
+def encoder_conv(ci, co):
+    #######################
+    # Start YOUR CODE    #
+    #######################
+
+    #######################
+    # end YOUR CODE    #
+    #######################
+
+class deconv(nn.Module):
+  def __init__(self, ci, co):
+    super(deconv, self).__init__()
+    #######################
+    # Start YOUR CODE    #
+    #######################
+
+    #######################
+    # end YOUR CODE    #
+    #######################
+
+  def forward(self, x1, x2):
+      #######################
+      # Start YOUR CODE    #
+      #######################
+
+      #######################
+      # end YOUR CODE    #
+      #######################
+      return x

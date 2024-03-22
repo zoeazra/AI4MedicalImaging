@@ -8,3 +8,4 @@ scipy~=1.10.0
 torchio~=0.18.91
 wandb~=0.16.2
 jupyter~=1.0.0
+pytorch-lightning~=2.2.1

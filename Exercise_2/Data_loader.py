@@ -29,13 +29,13 @@ class Scan_DataModule(pl.LightningDataModule):
     self.test_dataset = Scan_Dataset(self.test_data_dir  , transform = self.val_transforms)
 
   def train_dataloader(self):
-    return DataLoader(self.train_dataset, batch_size = self.batch_size)
+    return DataLoader(self.train_dataset, batch_size = self.batch_size, shuffle = True)
 
   def val_dataloader(self):
-    return DataLoader(self.val_dataset, batch_size = self.batch_size)
+    return DataLoader(self.val_dataset, batch_size = self.batch_size, shuffle = False)
 
   def test_dataloader(self):
-    return DataLoader(self.test_dataset, batch_size = self.batch_size)
+    return DataLoader(self.test_dataset, batch_size = self.batch_size, shuffle = False)
 
 
 class Scan_DataModule_Segm(pl.LightningDataModule):
@@ -43,24 +43,25 @@ class Scan_DataModule_Segm(pl.LightningDataModule):
     super().__init__()
     self.train_data_dir   = config['train_data_dir']
     self.val_data_dir     = config['val_data_dir']
-    # self.test_data_dir    = config['test_data_dir']
+    self.test_data_dir    = config['test_data_dir']
     self.batch_size       = config['batch_size']
 
     if transform:
-      self.train_transforms = transforms.Compose([Random_Rotate(0.1), transforms.ToTensor()])
+      self.train_transforms = transforms.Compose([Random_Rotate_Seg(0.1), ToTensor_Seg()])
     else:
-      self.train_transforms = transforms.Compose([transforms.ToTensor()])
+      self.train_transforms = transforms.Compose([ToTensor_Seg()])
     self.val_transforms   = transforms.Compose([ToTensor_Seg()])
 
   def setup(self, stage=None):
     self.train_dataset = Scan_Dataset_Segm(self.train_data_dir, transform = self.train_transforms)
     self.val_dataset   = Scan_Dataset_Segm(self.val_data_dir  , transform = self.val_transforms)
+    self.test_dataset = Scan_Dataset_Segm(self.test_data_dir  , transform = self.val_transforms)
 
   def train_dataloader(self):
-    return DataLoader(self.train_dataset, batch_size = self.batch_size)
+    return DataLoader(self.train_dataset, batch_size = self.batch_size, shuffle=True)
 
   def val_dataloader(self):
-    return DataLoader(self.val_dataset, batch_size = self.batch_size)
+    return DataLoader(self.val_dataset, batch_size = self.batch_size, shuffle=False)
 
 
 # Data module
@@ -68,6 +69,7 @@ class Scan_Dataset(Dataset):
     def __init__(self, data_dir, transform=False):
         self.transform = transform
         self.data_list = sorted(glob.glob(os.path.join(data_dir, 'img*.nii.gz')))
+
 
     def __len__(self):
         """defines the size of the dataset (equal to the length of the data_list)"""
@@ -154,7 +156,7 @@ class Random_Rotate_Seg(object):
     if float(torch.rand(1, dtype=torch.float64)) < self.probability:
       angle = float(torch.randint(low=-10, high=11, size=(1,)))
       image = rotate(image, angle, axes=(0, 1), reshape=False, order=3, mode='nearest')
-      mask = rotate(mask, angle, axes=(0, 1), reshape=False, order=3, mode='nearest')
+      mask = rotate(mask, angle, axes=(0, 1), reshape=False, order=0, mode='nearest')
     return {'image': image.copy(), 'mask': mask.copy()}
 
 
@@ -165,4 +167,3 @@ class ToTensor_Seg(object):
     image = transforms.ToTensor()(image)
     mask = transforms.ToTensor()(mask)
     return {'image': image.clone(), 'mask': mask.clone()}
-

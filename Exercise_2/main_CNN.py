@@ -22,13 +22,17 @@ import glob
 import torch
 import torchmetrics
 import torch.nn.functional as F
+from torchvision import transforms
 from sys import platform
-from Data_loader import Scan_Dataset, Scan_DataModule
-from visualization import show_data, show_augmentation_data
+from Data_loader import Scan_Dataset, Scan_DataModule, Random_Rotate
+from visualization import show_data, show_data_logger
 from CNNs import SimpleConvNet
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import WandbLogger
+import wandb
 
+#start interactieve sessie om wandb.login te runnen
+wandb.login()
 
 #seeding for reproducible results
 SEED=42
@@ -39,7 +43,7 @@ np.random.seed(SEED)
 np.random.RandomState(SEED)
 
 if platform == "linux" or platform == "linux2":
-    data_dir = '/project/gpuuva019/practical_2_data/classification'
+    data_dir = '/projects/0/gpuuva035/data/classification'
 else:
     #set data location on your local computer. Data can be downloaded from:
     # https://surfdrive.surf.nl/files/index.php/s/epjCz4fip1pkWN7
@@ -50,16 +54,13 @@ print('data is loaded from ' + data_dir)
 # view data
 nn_set = 'train' # ['train', 'val', 'test']
 index = 0
+
+# study the effect of augmentation here!
 dataset = Scan_Dataset(os.path.join(data_dir, nn_set))
 show_data(dataset,index,n_images_display=5)
-config_dummy=({
-    'train_data_dir': os.path.join(data_dir, 'train'),
-    'val_data_dir': os.path.join(data_dir, 'val'),
-    'test_data_dir': os.path.join(data_dir, 'test'),
-    'batch_size':16,
-    'bin': 'models/'})
-data = Scan_DataModule(config_dummy,transform=True)
-show_augmentation_data(data)
+train_transforms = transforms.Compose([Random_Rotate(0.1), transforms.ToTensor()])
+dataset = Scan_Dataset(os.path.join(data_dir, nn_set),transform = train_transforms)
+show_data(dataset,index,n_images_display=5)
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 torch.device(device)
@@ -78,6 +79,8 @@ metrics = {'acc': torchmetrics.Accuracy('binary').to(device),
 class Classifier(pl.LightningModule):
     def __init__(self, *args):
         super().__init__()
+        self.save_hyperparameters()
+        self.counter=0
 
         # defining model
         self.model_name = config['model_name']
@@ -87,12 +90,14 @@ class Classifier(pl.LightningModule):
         # assigning optimizer values
         self.optimizer_name = config['optimizer_name']
         self.lr = config['optimizer_lr']
+        self.plot = False
 
     def step(self, batch, nn_set):
         X, y = batch
         X, y = X.float().to(device), y.to(device)
         y_hat = self.model(X).squeeze(1)
         y_prob = torch.sigmoid(y_hat)
+        self.y_prob=y_prob
 
         loss = F.binary_cross_entropy_with_logits(y_hat, y.float())
         self.log(f'{nn_set}_loss', loss, on_step=False, on_epoch=True)
@@ -105,12 +110,19 @@ class Classifier(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         loss = self.step(batch, 'train')
+        if batch_idx == 0:
+            fig = show_data_logger(batch,0,self.y_prob,n_images_display = 5, message = 'train_example')
+            self.logger.log_image("train_example",[fig],step=self.counter)
         batch_dictionary = {'loss': loss}
         self.log_dict(batch_dictionary)
         return batch_dictionary
 
     def validation_step(self, batch, batch_idx):
         loss = self.step(batch, 'val')
+        if batch_idx == 0:
+            fig = show_data_logger(batch,0,self.y_prob,n_images_display = 5, message = 'test-example')
+            self.logger.log_image("test_example",[fig],step=self.counter)
+            self.counter = self.counter+1
         batch_dictionary = {'loss': loss}
         self.log_dict(batch_dictionary)
         return batch_dictionary
@@ -120,6 +132,9 @@ class Classifier(pl.LightningModule):
         self.logger.experiment.add_scalar("Loss/Train", avg_loss, self.current_epoch)
         epoch_dictionary = {'loss': avg_loss, 'log': {'loss': avg_loss}}
         return epoch_dictionary
+
+
+
 
     def test_step(self, batch, batch_idx):
         self.step(batch, 'test')
@@ -133,16 +148,16 @@ class Classifier(pl.LightningModule):
 
 
 def run(config):
-    logger = TensorBoardLogger(config['bin'], name=config['experiment_name'])
+    logger = WandbLogger(name=config['experiment_name'], project='ISIC')
     if not config['checkpoint_folder_path']:
         data = Scan_DataModule(config)
         classifier = Classifier(config)
+        logger.watch(classifier)
         checkpoint_callback = pl.callbacks.ModelCheckpoint(monitor='val_f1')
         trainer = pl.Trainer(accelerator=device, max_epochs=config['max_epochs'],
                              logger=logger, callbacks=[checkpoint_callback],
                              default_root_dir=config['bin'],
-                             log_every_n_steps=1,
-                             devices=1 if device == 'cuda' else 3)
+                             log_every_n_steps=1)
         trainer.fit(classifier, data)
     else:
 

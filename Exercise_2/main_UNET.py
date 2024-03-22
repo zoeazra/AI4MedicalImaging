@@ -18,19 +18,22 @@ import os
 import numpy as np
 import argparse
 import glob
-import torchio
+
 import torch
 import torchmetrics
 import torch.nn.functional as F
-import nibabel as nib
-
-from sys import platform
-from Data_loader import Scan_Dataset_Segm, Scan_DataModule_Segm, ToTensor_Seg
-from visualization import show_data_Unet
-from CNNs import UNet
 from torchvision import transforms
+from sys import platform
+from Data_loader import Scan_Dataset_Segm, Scan_DataModule_Segm, Random_Rotate_Seg, ToTensor_Seg
+from visualization import show_data_Unet, show_data_logger_Unet
+from CNNs import UNet
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import WandbLogger
+import wandb
+
+
+#start interactieve sessie om wandb.login te runnen
+wandb.login()
 
 #seeding for reproducible results
 SEED=42
@@ -41,7 +44,7 @@ np.random.seed(SEED)
 np.random.RandomState(SEED)
 
 if platform == "linux" or platform == "linux2":
-    data_dir = '/project/gpuuva019/practical_2_data/segmentation'
+    data_dir = '/projects/0/gpuuva035/data/segmentation'
 else:
     #set data location on your local computer. Data can be downloaded from:
     # https://surfdrive.surf.nl/files/index.php/s/epjCz4fip1pkWN7
@@ -54,8 +57,15 @@ nn_set = 'train' # ['train', 'val', 'test']
 index = 0
 dataset = Scan_Dataset_Segm(os.path.join(data_dir, nn_set))
 show_data_Unet(dataset,index,n_images_display=5)
+train_transforms = transforms.Compose([Random_Rotate_Seg(0.1), ToTensor_Seg()])
+dataset = Scan_Dataset_Segm(os.path.join(data_dir, nn_set),transform = train_transforms)
+show_data_Unet(dataset,index,n_images_display=5)
+
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 torch.device(device)
+print('device is ' + device)
+
 
 models = {'unet': UNet}
 
@@ -71,6 +81,8 @@ metrics = {'acc': torchmetrics.Accuracy(task='binary').to(device),
 class Segmenter(pl.LightningModule):
     def __init__(self, *args):
         super().__init__()
+        self.save_hyperparameters()
+        self.counter=0
 
         # defining model
         self.model_name = config_segm['model_name']
@@ -85,7 +97,9 @@ class Segmenter(pl.LightningModule):
         X, y = batch['image'], batch['mask']
         X, y = X.float().to(device), y.to(device).float()
         y_hat = self.model(X)
+
         y_prob = torch.sigmoid(y_hat)
+        self.y_prob=y_prob>0.5
         del X, y_hat, batch
 
         pos_weight = torch.tensor([config_segm['loss_pos_weight']]).float().to(device)
@@ -100,9 +114,21 @@ class Segmenter(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         self.step(batch, 'train')
+        if batch_idx == 0:
+            fig = show_data_logger_Unet(batch,0,self.y_prob,n_images_display = 5, message = 'train_example')
+            self.logger.log_image("train_example",[fig],step=self.counter)
+        batch_dictionary = {'loss': loss}
+        self.log_dict(batch_dictionary)
+
 
     def validation_step(self, batch, batch_idx):
         self.step(batch, 'val')
+        if batch_idx == 0:
+            fig = show_data_logger_Unet(batch,0,self.y_prob,n_images_display = 5, message = 'val_example')
+            self.logger.log_image("val_example",[fig],step=self.counter)
+        batch_dictionary = {'loss': loss}
+        self.log_dict(batch_dictionary)
+
 
     def test_step(self, batch, batch_idx):
         self.step(batch, 'test')
@@ -112,25 +138,14 @@ class Segmenter(pl.LightningModule):
 
     def configure_optimizers(self):
         assert self.optimizer_name in optimizers, f'Optimizer name "{self.optimizer_name}" is not available. List of available names: {list(models.keys())}'
+        print(self.lr)
+        print(self.optimizer_name)
+        print(self.parameters())
         return optimizers[self.optimizer_name](self.parameters(), lr=self.lr)
 
 
-class Scan_DataModule_Segm_Test(pl.LightningDataModule):
-    def __init__(self, test_data_dir, batch_size=32):
-        super().__init__()
-        self.test_data_dir = test_data_dir
-        self.batch_size = batch_size
-        self.test_transforms = transforms.Compose([ToTensor_Seg()])
-
-    def setup(self, stage=None):
-        self.test_dataset = Scan_Dataset_Segm(self.test_data_dir, transform=self.test_transforms)
-
-    def test_dataloader(self):
-        return torch.utils.data.DataLoader(self.test_dataset, batch_size=self.batch_size)
-
-
 def run(config_segm):
-    logger = TensorBoardLogger(config_segm['bin'], name=config_segm['experiment_name'])
+    logger = WandbLogger(name=config_segm['experiment_name'], project='ISIC-Unet')
     if not config_segm['checkpoint_folder_path']:
         data = Scan_DataModule_Segm(config_segm)
         segmenter = Segmenter(config_segm)
@@ -149,7 +164,7 @@ def run(config_segm):
         model.eval()
 
         # make test dataloader
-        test_data = Scan_DataModule_Segm_Test(test_data_dir)
+        test_data = Scan_DataModule_Segm(test_data_dir)
 
         # test model
         trainer = pl.Trainer()
