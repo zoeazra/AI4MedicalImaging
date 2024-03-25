@@ -153,7 +153,7 @@ def run(config):
         data = Scan_DataModule(config)
         classifier = Classifier(config)
         logger.watch(classifier)
-        checkpoint_callback = pl.callbacks.ModelCheckpoint(monitor='val_f1')
+        checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=config['checkpoint_folder_save'], monitor='val_f1')
         trainer = pl.Trainer(accelerator=device, max_epochs=config['max_epochs'],
                              logger=logger, callbacks=[checkpoint_callback],
                              default_root_dir=config['bin'],
@@ -192,8 +192,9 @@ if __name__ == '__main__':
     parser.add_argument('--experiment_name', default='test1', type=str,
                         help='name of experiment')
     parser.add_argument('--checkpoint_folder_path', default=False, type=str,
-                        help='name of experiment')
-
+                        help='path of experiment to load')
+    parser.add_argument('--checkpoint_folder_save', default=None, type=str,
+                        help='path of experiment')
     args = parser.parse_args()
     config = vars(args)
 

@@ -68,7 +68,10 @@ def show_data_logger(dataset,index,pred,n_images_display = 5, message = 'Raw dat
 def show_data_logger_Unet(dataset,index,pred,n_images_display = 5,message = 'Raw data'):
     # @title Visualizing Images { run: 'auto'}
     fig, ax = plt.subplots(1, n_images_display, figsize=(50, 20))
-    image, mask = dataset['image'].to('cpu'), dataset['mask'].to('cpu')
+    image, mask = dataset['image'].cpu(), dataset['mask'].cpu()
+    image, mask = np.uint8(image), np.uint8(mask)
+    pred = pred.cpu()
+    pred = np.uint8(pred)
     if np.shape(image)[1] == 3:
         image = np.einsum('dabc->dbca', image)
     if np.shape(mask)[1] == 1:
@@ -76,10 +79,11 @@ def show_data_logger_Unet(dataset,index,pred,n_images_display = 5,message = 'Raw
     if np.shape(pred)[1] == 1:
         pred = np.einsum('dabc->dbca', pred)
     for i in range(n_images_display):
+        image2=image[i]
         edge = cv2.Canny(mask[i] * 255, 100, 200)
-        image[edge > 0] = (0, 255, 0)
+        image2[edge > 0] = (0, 255, 0)
         edgepred = cv2.Canny(pred[i] * 255, 100, 200)
-        image[edgepred > 0] = (0, 0, 255)
-        ax[i].imshow(image[i])
+        image2[edgepred > 0] = (0, 0, 255)
+        ax[i].imshow(image2)
         ax[i].axis('off')
-    plt.show()
+    return fig

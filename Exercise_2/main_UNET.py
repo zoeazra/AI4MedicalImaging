@@ -113,7 +113,7 @@ class Segmenter(pl.LightningModule):
         return loss
 
     def training_step(self, batch, batch_idx):
-        self.step(batch, 'train')
+        loss = self.step(batch, 'train')
         if batch_idx == 0:
             fig = show_data_logger_Unet(batch,0,self.y_prob,n_images_display = 5, message = 'train_example')
             self.logger.log_image("train_example",[fig],step=self.counter)
@@ -122,10 +122,11 @@ class Segmenter(pl.LightningModule):
 
 
     def validation_step(self, batch, batch_idx):
-        self.step(batch, 'val')
+        loss = self.step(batch, 'val')
         if batch_idx == 0:
             fig = show_data_logger_Unet(batch,0,self.y_prob,n_images_display = 5, message = 'val_example')
             self.logger.log_image("val_example",[fig],step=self.counter)
+            self.counter = self.counter+1
         batch_dictionary = {'loss': loss}
         self.log_dict(batch_dictionary)
 
@@ -138,9 +139,6 @@ class Segmenter(pl.LightningModule):
 
     def configure_optimizers(self):
         assert self.optimizer_name in optimizers, f'Optimizer name "{self.optimizer_name}" is not available. List of available names: {list(models.keys())}'
-        print(self.lr)
-        print(self.optimizer_name)
-        print(self.parameters())
         return optimizers[self.optimizer_name](self.parameters(), lr=self.lr)
 
 
@@ -149,7 +147,7 @@ def run(config_segm):
     if not config_segm['checkpoint_folder_path']:
         data = Scan_DataModule_Segm(config_segm)
         segmenter = Segmenter(config_segm)
-        checkpoint_callback = pl.callbacks.ModelCheckpoint(monitor='val_f1')
+        checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=config['checkpoint_folder_save'],monitor='val_f1')
         trainer = pl.Trainer(max_epochs=config_segm['max_epochs'],
                              logger=logger, callbacks=[checkpoint_callback],
                              default_root_dir=config_segm['bin'],
@@ -193,21 +191,23 @@ if __name__ == '__main__':
     # Optimizer hyperparameters
     parser.add_argument('--optimizer_lr', default=0.1, type=float, nargs='+',
                         help='Learning rate to use')
-    parser.add_argument('--batch_size', default=16, type=int,
+    parser.add_argument('--batch_size', default=32, type=int,
                         help='Minibatch size')
     parser.add_argument('--model_name', default='unet', type=str,
                         help='defines model to use')
-    parser.add_argument('--optimizer_name', default='sgd', type=str,
+    parser.add_argument('--optimizer_name', default='adam', type=str,
                         help='optimizer options: adam and sgd (default)')
     # Other hyperparameters
-    parser.add_argument('--max_epochs', default=1, type=int,
+    parser.add_argument('--max_epochs', default=50, type=int,
                         help='Max number of epochs')
-    parser.add_argument('--experiment_name', default='test1', type=str,
+    parser.add_argument('--experiment_name', default='test2', type=str,
                         help='name of experiment')
     parser.add_argument('--checkpoint_folder_path', default=False, type=str,
                         help='name of experiment')
     parser.add_argument('--predictions_path', default=False, type=str,
                         help='path where to store predictions')
+    parser.add_argument('--checkpoint_folder_save', default=None, type=str,
+                        help='path of experiment')
 
     args = parser.parse_args()
     config_segm = vars(args)
