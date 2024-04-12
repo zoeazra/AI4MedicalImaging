@@ -30,6 +30,8 @@ from CNNs import UNet
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 import wandb
+import nibabel as nib
+import torchio
 
 
 #start interactieve sessie om wandb.login te runnen
@@ -144,45 +146,43 @@ class Segmenter(pl.LightningModule):
 
 def run(config_segm):
     logger = WandbLogger(name=config_segm['experiment_name'], project='ISIC-Unet')
-    if not config_segm['checkpoint_folder_path']:
-        data = Scan_DataModule_Segm(config_segm)
-        segmenter = Segmenter(config_segm)
-        checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=config['checkpoint_folder_save'],monitor='val_f1')
-        trainer = pl.Trainer(max_epochs=config_segm['max_epochs'],
-                             logger=logger, callbacks=[checkpoint_callback],
-                             default_root_dir=config_segm['bin'],
-                             log_every_n_steps=1)
-        trainer.fit(segmenter, data)
-    else:
-        # change these paths
-        test_data_dir = os.path.join(data_dir, 'test')
-        # load best model
-        PATH = glob.glob(os.path.join(config_segm['checkpoint_folder_path'], '*'))[0]
-        model = Segmenter.load_from_checkpoint(PATH)
-        model.eval()
+    data = Scan_DataModule_Segm(config_segm)
+    segmenter = Segmenter(config_segm)
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=config_segm['checkpoint_folder_save'],monitor='val_f1')
+    trainer = pl.Trainer(max_epochs=config_segm['max_epochs'],
+                         logger=logger, callbacks=[checkpoint_callback],
+                         default_root_dir=config_segm['bin'],
+                         log_every_n_steps=1)
+    trainer.fit(segmenter, data)
+    # change these paths
+    test_data_dir = os.path.join(data_dir, 'test')
+    # load best model
+    PATH = glob.glob(os.path.join(config_segm['checkpoint_folder_save'], '*'))[0]
+    model = Segmenter.load_from_checkpoint(PATH)
+    model.eval()
 
-        # make test dataloader
-        test_data = Scan_DataModule_Segm(test_data_dir)
+    # make test dataloader
+    test_data = Scan_DataModule_Segm(test_data_dir)
 
-        # test model
-        trainer = pl.Trainer()
-        trainer.test(model, dataloaders=test_data, verbose=True)
+    # test model
+    trainer = pl.Trainer()
+    trainer.test(model, dataloaders=test_data, verbose=True)
 
-        # get and store predictions
-        if config_segm['predictions_path']:
-            image_list = glob.glob(test_data_dir+'/img*.nii.gz')
-            predictions_dir = config_segm['predictions_path']
-            os.makedirs(predictions_dir, exist_ok=True)
-            for image in image_list:
-                X = torch.tensor(nib.load(image).get_fdata())
-                X = torch.permute(X, [2, 0, 1])
-                X = torch.unsqueeze(X, 0)
-                X = X.float()
-                y = model(X)
-                pred = torch.sigmoid(y)
-                pred_image = torchio.Image(tensor=pred.cpu().detach())
-                pred_path = predictions_dir + 'pred_' + image.rsplit('/', 1)[1]
-                pred_image.save(pred_path)
+    # get and store predictions
+    if config_segm['checkpoint_folder_save']:
+        image_list = glob.glob(test_data_dir+'/img*.nii.gz')
+        predictions_dir = config_segm['checkpoint_folder_save']
+        os.makedirs(predictions_dir, exist_ok=True)
+        for image in image_list:
+            X = torch.tensor(nib.load(image).get_fdata())
+            X = torch.permute(X, [2, 0, 1])
+            X = torch.unsqueeze(X, 0)
+            X = X.float()
+            y = model(X)
+            pred = torch.sigmoid(y)
+            pred_image = torchio.Image(tensor=pred.cpu().detach())
+            pred_path = predictions_dir + 'pred_' + image.rsplit('/', 1)[1]
+            pred_image.save(pred_path)
 
 
 if __name__ == '__main__':
@@ -198,14 +198,10 @@ if __name__ == '__main__':
     parser.add_argument('--optimizer_name', default='adam', type=str,
                         help='optimizer options: adam and sgd (default)')
     # Other hyperparameters
-    parser.add_argument('--max_epochs', default=50, type=int,
+    parser.add_argument('--max_epochs', default=10, type=int,
                         help='Max number of epochs')
     parser.add_argument('--experiment_name', default='test2', type=str,
                         help='name of experiment')
-    parser.add_argument('--checkpoint_folder_path', default=False, type=str,
-                        help='name of experiment')
-    parser.add_argument('--predictions_path', default=False, type=str,
-                        help='path where to store predictions')
     parser.add_argument('--checkpoint_folder_save', default=None, type=str,
                         help='path of experiment')
 
@@ -216,8 +212,8 @@ if __name__ == '__main__':
         'train_data_dir': os.path.join(data_dir, 'train'),
         'val_data_dir': os.path.join(data_dir, 'val'),
         'test_data_dir': os.path.join(data_dir, 'test'),
-        'bin': 'models/',
-        'loss_pos_weight': 1})
+        'bin': 'segm_models/',
+        'loss_pos_weight': 2})
 
     run(config_segm)
     # Feel free to add any additional functions, such as plotting of the loss curve here

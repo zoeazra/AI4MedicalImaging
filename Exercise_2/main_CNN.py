@@ -46,7 +46,7 @@ if platform == "linux" or platform == "linux2":
     data_dir = '/projects/0/gpuuva035/data/classification'
 else:
     #set data location on your local computer. Data can be downloaded from:
-    # https://surfdrive.surf.nl/files/index.php/s/epjCz4fip1pkWN7
+    # https://surfdrive.surf.nl/files/index.php/s/QWJUE37bHojMVKQ
     # PW: deeplearningformedicalimaging
     data_dir = 'C:\scratch\Surf\Documents\Onderwijs\DeepLearning_MedicalImaging\opgaven\opgave 2\AI-Course_StudentChallenge\data\classification'
 
@@ -149,29 +149,26 @@ class Classifier(pl.LightningModule):
 
 def run(config):
     logger = WandbLogger(name=config['experiment_name'], project='ISIC')
-    if not config['checkpoint_folder_path']:
-        data = Scan_DataModule(config)
-        classifier = Classifier(config)
-        logger.watch(classifier)
-        checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=config['checkpoint_folder_save'], monitor='val_f1')
-        trainer = pl.Trainer(accelerator=device, max_epochs=config['max_epochs'],
-                             logger=logger, callbacks=[checkpoint_callback],
-                             default_root_dir=config['bin'],
-                             log_every_n_steps=1)
-        trainer.fit(classifier, data)
-    else:
+    data = Scan_DataModule(config)
+    classifier = Classifier(config)
+    logger.watch(classifier)
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=config['checkpoint_folder_save'], monitor='val_f1')
+    trainer = pl.Trainer(accelerator=device, max_epochs=config['max_epochs'],
+                         logger=logger, callbacks=[checkpoint_callback],
+                         default_root_dir=config['bin'],
+                         log_every_n_steps=1)
+    trainer.fit(classifier, data)
+    # load best model
+    PATH = glob.glob(os.path.join(config['checkpoint_folder_save'], '*'))[0]
+    model = Classifier.load_from_checkpoint(PATH)
+    model.eval()
 
-        # load best model
-        PATH = glob.glob(os.path.join(config['checkpoint_folder_path'], '*'))[0]
-        model = Classifier.load_from_checkpoint(PATH)
-        model.eval()
+    # make test dataloader
+    test_data = Scan_DataModule(config)
 
-        # make test dataloader
-        test_data = Scan_DataModule(config)
-
-        # test model
-        trainer = pl.Trainer()
-        trainer.test(model, dataloaders=test_data, verbose=True)
+    # test model
+    trainer = pl.Trainer()
+    trainer.test(model, dataloaders=test_data, verbose=True)
 
 
 if __name__ == '__main__':
