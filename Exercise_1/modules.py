@@ -22,6 +22,10 @@ You should fill in code into indicated sections.
 3 A.	Program the different neural network modules in “modules.py”. Use “do_unittest.py” to test whether the forward and backward passes are correct. Make only use of matrix multiplications, no for loops. Points will be deduced when for-loops are used where matrix multiplications were possible.
 """
 import numpy as np
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 
 
 class LinearModule(object):
@@ -255,3 +259,90 @@ class MSE:
         #######################
 
         return dx
+
+
+class MLP(object):
+    """
+    This class implements a Multi-layer Perceptron in NumPy.
+    It handles the different layers and parameters of the model.
+    Once initialized an MLP object can perform forward and backward.
+    """
+
+    def __init__(self, input_size, hidden_sizes, output_size):
+        """
+        Initializes MLP object.
+        Args:
+          n_inputs: number of inputs.
+          hidden_sizes: list of ints, specifies the number of units
+                    in each linear layer. If the list is empty, the MLP
+                    will not have any linear layers, and the model
+                    will simply perform a multinomial logistic regression.
+          output_size: number of predicted parameters.
+                     This number is required in order to specify the
+                     output dimensions of the MLP
+        TODO: Implement initialization of the network.
+        """
+        list_linear_modules = list()
+        list_RELU_activations = list()
+        for hidden_size in hidden_sizes:
+            list_linear_modules.append(LinearModule(input_size, hidden_size))
+            list_RELU_activations.append(RELUModule())
+            input_size = hidden_size
+        list_linear_modules.append(LinearModule(input_size, output_size))
+        TANH = TanhModule()
+        self.LM = list_linear_modules
+        self.RELU = list_RELU_activations
+        self.TANH = TANH
+
+
+    def forward(self, x):
+        """
+        Performs forward pass of the input. Here an input tensor x is transformed through
+        several layer transformations.
+        Args:
+          x: input to the network
+        Returns:
+          out: outputs of the network
+        TODO: Implement forward pass of the network.
+        """
+
+        #######################
+        # PUT YOUR CODE HERE  #
+        #######################
+
+
+        #######################
+        # END OF YOUR CODE    #
+        #######################
+
+        return x
+
+    def backward(self, dout):
+        """
+        Performs backward pass given the gradients of the loss.
+        Args:
+          dout: gradients of the loss
+        TODO: Implement backward pass of the network.
+        """
+
+        #######################
+        # PUT YOUR CODE HERE  #
+        #######################
+
+        #######################
+        # END OF YOUR CODE    #
+        #######################
+
+        return dout
+
+    def clear_cache(self):
+        """
+        Remove any saved tensors for the backward pass from any module.
+        Used to clean-up model from any remaining input data when we want to save it.
+        TODO: Iterate over modules and call the 'clear_cache' function.
+        """
+        for objs in self.RELU:
+            objs.clear_cache
+        for objs in self.LM:
+            objs.clear_cache
+        self.TANH.clear_cache

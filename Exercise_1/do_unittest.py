@@ -15,9 +15,7 @@
 ################################################################################
 import unittest
 import numpy as np
-from MLP_numpy import MLP
-from modules import LinearModule, TanhModule, MSE
-from modules import RELUModule
+from modules import LinearModule, TanhModule, MSE, RELUModule, MLP
 
 
 def rel_error(x, y):
