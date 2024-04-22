@@ -104,8 +104,8 @@ class Segmenter(pl.LightningModule):
         self.y_prob=y_prob>0.5
         del X, y_hat, batch
 
-        pos_weight = torch.tensor([config_segm['loss_pos_weight']]).float().to(device)
-        loss = F.binary_cross_entropy_with_logits(y, y_prob, pos_weight=pos_weight)
+        #pos_weight = torch.tensor([config_segm['loss_pos_weight']]).float().to(device)
+        loss = F.binary_cross_entropy(y_prob,y)
         self.log(f"{nn_set}_loss", loss, on_step=False, on_epoch=True)
 
         for i, (metric_name, metric_fn) in enumerate(metrics.items()):
@@ -214,7 +214,7 @@ if __name__ == '__main__':
         'val_data_dir': os.path.join(data_dir, 'val'),
         'test_data_dir': os.path.join(data_dir, 'test'),
         'bin': 'segm_models/',
-        'loss_pos_weight': 2})
+        'loss_pos_weight': 1})
 
     run(config_segm)
     # Feel free to add any additional functions, such as plotting of the loss curve here
