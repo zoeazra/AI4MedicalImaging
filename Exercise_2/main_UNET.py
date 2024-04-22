@@ -31,6 +31,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 import wandb
 import nibabel as nib
+import torchio
 
 
 #start interactieve sessie om wandb.login te runnen
