@@ -31,7 +31,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 import wandb
 import nibabel as nib
-import torchio
 
 
 #start interactieve sessie om wandb.login te runnen
@@ -121,6 +120,7 @@ class Segmenter(pl.LightningModule):
             self.logger.log_image("train_example",[fig],step=self.counter)
         batch_dictionary = {'loss': loss}
         self.log_dict(batch_dictionary)
+        return batch_dictionary
 
 
     def validation_step(self, batch, batch_idx):

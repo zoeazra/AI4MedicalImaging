@@ -19,7 +19,6 @@
 This module implements various modules of the network.
 You should fill in code into indicated sections.
 
-3 A.	Program the different neural network modules in “modules.py”. Use “do_unittest.py” to test whether the forward and backward passes are correct. Make only use of matrix multiplications, no for loops. Points will be deduced when for-loops are used where matrix multiplications were possible.
 """
 import numpy as np
 from __future__ import absolute_import
@@ -33,7 +32,7 @@ class LinearModule(object):
     Linear module. Applies a linear transformation to the input data.
     """
 
-    def __init__(self, in_features, out_features, input_layer=False):
+    def __init__(self, in_features, out_features):
         """
         Initializes the parameters of the module.
         Args:
@@ -48,7 +47,6 @@ class LinearModule(object):
         self.weights = np.random.randn(in_features, out_features)/(in_features+out_features)
         self.bias = np.zeros([out_features,1])
         self.grads = {'bias': np.zeros(in_features), 'weight': np.zeros(np.shape(self.weights))}
-        self.input_layer = input_layer
 
     def forward(self, x):
         """
@@ -67,20 +65,22 @@ class LinearModule(object):
         # PUT YOUR CODE HERE  #
         #######################
 
+        #hint: use the np.einsum function to deal with dimensions. I.e. np.einsum('ab,ac-->bc',A,B)  multiplies A (a by b shape) with B (b by c shape) such that it ends up with a matrix shaped b by c
+
         #######################
         # END OF YOUR CODE    #
         #######################
 
         return out
 
-    def backward(self, dout):
+    def backward(self, DlDout):
         """
         Backward pass.
         Args:
-          dout: gradients of the previous module
+          DlDout: this is dLoss/dOut, with out the output of the forward pass. These are the gradients down to the previous module (previous backwards)
         Returns:
-          dx: gradients with respect to the input of the module
-        TODO: Implement backward pass of the module. Store gradient of the loss with respect to layer parameters in
+          DlDin: gradients with respect to the input of the module dLoss/Din
+        TODO: Implement backward pass of the module. Store gradient of the loss with respect to the layers input, dLoss/dIn (DlDin). --> note that the we refer to the input in the forward pass.
         TODO: self.grads['weight'] and self.grads['bias'].
         """
 
@@ -93,7 +93,7 @@ class LinearModule(object):
         # END OF YOUR CODE    #
         #######################
 
-        return dx
+        return DlDin
 
     def clear_cache(self):
         """
@@ -135,14 +135,15 @@ class RELUModule(object):
 
         return out
 
-    def backward(self, dout):
+    def backward(self, DlDout):
         """
         Backward pass.
         Args:
-          dout: gradients of the previous module
+        Args:
+          DlDout: this is dLoss/dOut, with out the output of the forward pass. These are the gradients down to the previous module (previous backwards)
         Returns:
-          dx: gradients with respect to the input of the module
-        TODO: Implement backward pass of the module.
+          DlDin: gradients with respect to the input of the module dLoss/Din
+        TODO: Implement backward pass of the module. Store gradient of the loss with respect to the layers input, dLoss/dIn (DlDin). --> note that the we refer to the input in the forward pass.
         """
 
         #######################
@@ -152,7 +153,7 @@ class RELUModule(object):
         #######################
         # END OF YOUR CODE    #
         #######################
-        return dx
+        return DlDin
 
     def clear_cache(self):
         """
@@ -188,14 +189,15 @@ class TanhModule(object):
 
         return out
 
-    def backward(self, dout):
+    def backward(self, DlDout):
         """
         Backward pass.
         Args:
-          dout: gradients of the previous module
+        Args:
+          DlDout: this is dLoss/dOut, with out the output of the forward pass. These are the gradients down to the previous module (previous backwards)
         Returns:
-          dx: gradients with respect to the input of the module
-        TODO: Implement backward pass of the module.
+          DlDin: gradients with respect to the input of the module dLoss/Din
+        TODO: Implement backward pass of the module. Store gradient of the loss with respect to the layers input, dLoss/dIn (DlDin). --> note that the we refer to the input in the forward pass.
         """
 
         #######################
@@ -206,7 +208,7 @@ class TanhModule(object):
         # END OF YOUR CODE    #
         #######################
 
-        return dx
+        return DlDin
 
     def clear_cache(self):
         """
@@ -258,7 +260,7 @@ class MSE:
         # END OF YOUR CODE    #
         #######################
 
-        return dx
+        return DlDin
 
 
 class MLP(object):
@@ -304,6 +306,10 @@ class MLP(object):
         Returns:
           out: outputs of the network
         TODO: Implement forward pass of the network.
+        note that the objects from the lists defined in the init function can be used in a for loop with
+
+        x = self.LM[objs].forward(x)
+
         """
 
         #######################
@@ -317,7 +323,7 @@ class MLP(object):
 
         return x
 
-    def backward(self, dout):
+    def backward(self, DlDout):
         """
         Performs backward pass given the gradients of the loss.
         Args:
@@ -333,7 +339,7 @@ class MLP(object):
         # END OF YOUR CODE    #
         #######################
 
-        return dout
+        return DlDin
 
     def clear_cache(self):
         """
