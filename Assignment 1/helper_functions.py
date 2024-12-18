@@ -22,7 +22,7 @@ def ivim(bvalues, Dt, Fp, Ds, S0):
     # regular IVIM function
     return (S0 * (Fp * np.exp(-bvalues * Ds) + (1 - Fp) * np.exp(-bvalues * Dt)))
 
-def sim_signal(SNR=(20,40), bvalues=[0, 1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 300, 500, 700, 850, 1000], sims=100000, Dmin=0.5 / 1000, Dmax=5.0 / 1000, fmin=0.0, fmax=0.7, Dsmin=0.05, Dsmax=0.3,fp2min=0, fp2max=0.3,Ds2min=0.2,Ds2max=0.5,
+def sim_signal(SNR=(20,40), bvalues=[0, 1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 300, 500, 700, 850, 1000], sims=100000, Dmin=0.5 / 1000, Dmax=3.0 / 1000, fmin=0.0, fmax=0.7, Dsmin=0.005, Dsmax=0.1,fp2min=0, fp2max=0.3,Ds2min=0.2,Ds2max=0.5,
                rician=False,seed=123):
     """
     This simulates IVIM curves. Data is simulated by randomly selecting a value of D, f and D* from within the
@@ -157,12 +157,11 @@ def plot_example(input, valid_id,vmax=0.7):
     img = np.zeros([sx * sy])
     img[valid_id] = input
     img = np.reshape(img, [sx, sy])
-    plt.imshow(img,vmin=0, vmax=vmax)
+    plt.imshow(img,vmin=0, vmax=vmax,cmap='gray')
     plt.ion()
     plt.show()
     plt.pause(0.001)
     pass
-
 
 def plot_ref():
     folder = 'data'
@@ -170,15 +169,15 @@ def plot_ref():
     dataf = nib.load('{folder}/f.nii.gz'.format(folder=folder))
     dataDp = nib.load('{folder}/Dp.nii.gz'.format(folder=folder))
 
-    plt.imshow(dataD.get_data()[:,:,8],vmax=0.003)
+    plt.imshow(dataD.get_fdata()[:,:,8],vmax=0.003,cmap='gray')
     plt.ion()
     plt.show()
     plt.pause(0.001)
-    plt.imshow(dataf.get_data()[:,:,8],vmax=0.7)
+    plt.imshow(dataf.get_fdata()[:,:,8],vmax=0.7,cmap='gray')
     plt.ion()
     plt.show()
     plt.pause(0.001)
-    plt.imshow(dataDp.get_data()[:,:,8],vmax=0.1)
+    plt.imshow(dataDp.get_fdata()[:,:,8],vmax=0.1,cmap='gray')
     plt.ion()
     plt.show()
     plt.pause(0.001)
