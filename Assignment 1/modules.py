@@ -65,6 +65,8 @@ class LinearModule(object):
         # PUT YOUR CODE HERE  #
         #######################
        #hint: use the np.einsum function to deal with dimensions. I.e. np.einsum('ab,ac-->bc',A,B)  multiplies A (a by b shape) with B (b by c shape) such that it ends up with a matrix shaped b by c
+        out = np.einsum('ij,jk->ik', x, self.weights) + self.bias.T
+        
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -85,7 +87,9 @@ class LinearModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        self.grads['weight'] = np.einsum('ij,ik->jk', self.x, DlDout)
+        self.grads['bias']  = np.einsum('ik->k', DlDout).reshape(-1,1)
+        DlDin = np.einsum('ij,jk->ik', DlDout, self.weights.T)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -125,7 +129,7 @@ class RELUModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        out = x * (x > 0).astype(float)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -146,7 +150,7 @@ class RELUModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        DlDin = DlDout * (self.x > 0).astype(float)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -179,7 +183,8 @@ class TanhModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        out = np.tanh(x)
+        self.out = out
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -200,7 +205,7 @@ class TanhModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        DlDin = DlDout * (1 - self.out**2)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -234,7 +239,9 @@ class MSE:
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        self.x = x
+        self.y = y
+        out = np.mean((x - y) ** 2)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -252,7 +259,8 @@ class MSE:
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        n = self.x.size
+        DlDin = (2.0 * (self.x - self.y)) / n
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -312,6 +320,14 @@ class MLP(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
+        #forward pass throught all hidden layers with ReLU activation
+        for i in range(len(self.LM)-1):
+            x = self.LM[i].forward(x)
+            x = self.RELU[i].forward(x)
+        
+        #final layer wit Tanh activation
+        x = self.LM[-1].forward(x)
+        x = self.TANH.forward(x)
 
 
         #######################
@@ -331,6 +347,11 @@ class MLP(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
+        DlDin = self.TANH.backward(DlDout)
+        for i in range(len(self.LM)-1, -1, -1):
+            if i < len(self.RELU):
+                DlDin = self.RELU[i].backward(DlDin)
+            DlDin = self.LM[i].backward(DlDin)
 
         #######################
         # END OF YOUR CODE    #
