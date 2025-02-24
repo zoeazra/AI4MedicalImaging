@@ -51,7 +51,7 @@ else:
     #set data location on your local computer. Data can be downloaded from:
     # https://surfdrive.surf.nl/files/index.php/s/epjCz4fip1pkWN7
     # PW: deeplearningformedicalimaging
-    data_dir = 'C:\scratch\Surf\Documents\Onderwijs\DeepLearning_MedicalImaging\opgaven\opgave 2\AI-Course_StudentChallenge\data\segmentation'
+    data_dir = '/Users/elenaliarou/Documents/master/block4/dl/AI4MedicalImaging/Assignment 2/data/segmentation'
 
 print('data is loaded from ' + data_dir)
 # view data
