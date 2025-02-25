@@ -48,7 +48,8 @@ else:
     #set data location on your local computer. Data can be downloaded from:
     # https://surfdrive.surf.nl/files/index.php/s/QWJUE37bHojMVKQ
     # PW: deeplearningformedicalimaging
-    data_dir = '/Users/elenaliarou/Documents/master/block4/dl/AI4MedicalImaging/Assignment 2/data/classification'
+    # data_dir = '/Users/elenaliarou/Documents/master/block4/dl/AI4MedicalImaging/Assignment 2/data/classification'
+    data_dir = '/Users/zoeazra/Documents/CLS/Y1/DL4MI/AI4MedicalImaging/Assignment 2/data/classification'
 
 print('data is loaded from ' + data_dir)
 # view data
