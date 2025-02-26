@@ -11,35 +11,62 @@ class SimpleConvNet(pl.LightningModule):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        self.layers = nn.Sequential(
-            # conv block 1
-            nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, padding=1),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-
-            # conv block 2
-            nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=1),
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=2),
             nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2))
+            nn.LeakyReLU(),
+            nn.MaxPool2d(2, 2),
+        )
+
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(),
+            nn.MaxPool2d(2, 2)
+        )
+
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(),
+        )
+
+        self.residual = nn.Conv2d(in_channels=32, out_channels=128, kernel_size=1, stride=4)
+
+        self.conv4 = nn.Sequential(
+            nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(),
+            nn.MaxPool2d(2, 2)
+        )
+           
+        self.global_avg_pool = nn.AdaptiveAvgPool2d(output_size=(1, 1))
+        
 
         self.classifier = nn.Sequential(
             # linear layers
-            nn.AdaptiveAvgPool2d(output_size=(4, 4)),
             nn.Flatten(),
-            nn.Linear(in_features=4 * 4 * 32, out_features=60),
-            nn.ReLU(),
-            nn.Linear(in_features=60, out_features=1)
+            nn.Linear(in_features=256, out_features=128),
+            nn.LeakyReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(in_features=128, out_features=1)
         )
         #######################
         # END OF YOUR CODE    #
         #######################
 
     def forward(self, x):
-        x = self.layers(x)
-        x = self.classifier(x)
-        return x
+        x1 = self.conv1(x)
+        x2 = self.conv2(x1)
+        x3 = self.conv3(x2)
+
+        x_res = self.residual(x1)
+        x3 += x_res
+
+        x4 = self.conv4(x3)
+        x5 = self.global_avg_pool(x4)
+        x5 = self.classifier(x5)
+        return x5
 
 
 class UNet(pl.LightningModule):
