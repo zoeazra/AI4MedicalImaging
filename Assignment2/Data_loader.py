@@ -7,6 +7,7 @@ from scipy.ndimage import rotate
 from torch.utils.data import DataLoader, Dataset
 import pytorch_lightning as pl
 from torchvision import transforms
+from torchvision.transforms import ToPILImage, ToTensor
 
 
 # Data loader
@@ -18,7 +19,9 @@ class Scan_DataModule(pl.LightningDataModule):
     self.test_data_dir    = config['test_data_dir']
     self.batch_size       = config['batch_size']
     if transform:
-      self.train_transforms = transforms.Compose([Random_Rotate(0.1), transforms.ToTensor()])
+      self.train_transforms = transforms.Compose([Random_Rotate(0.1), 
+                                                  transforms.Lambda(lambda x: ToPILImage()(torch.tensor(x, dtype=torch.float32).permute(2, 0, 1)) if x.ndim == 3 else ToPILImage()(torch.tensor(x, dtype=torch.float32).unsqueeze(0))),
+                                                  transforms.ToTensor()])
     else:
       self.train_transforms = transforms.Compose([transforms.ToTensor()])
     self.val_transforms  = transforms.Compose([transforms.ToTensor()])
@@ -45,7 +48,6 @@ class Scan_DataModule_Segm(pl.LightningDataModule):
     self.val_data_dir     = config['val_data_dir']
     self.test_data_dir    = config['test_data_dir']
     self.batch_size       = config['batch_size']
-
     if transform:
       self.train_transforms = transforms.Compose([Random_Rotate_Seg(0.1), ToTensor_Seg()])
     else:
