@@ -153,8 +153,7 @@ class TransConvNet(pl.LightningModule):
         x = self.resnet(x)  # Feature extraction using ResNet
         x = self.classifier(x)  # Classification head
         return x
-        
-
+    
 class UNet(pl.LightningModule):
   def __init__(self, n_classes=1, in_ch=3):
       super().__init__()
@@ -162,7 +161,15 @@ class UNet(pl.LightningModule):
       # Start YOUR CODE    #
       #######################
       # number of filter's list for each expanding and respecting contracting layer
+      c = [16, 32, 64, 128]
+
+
+class UNet(pl.LightningModule):
+  def __init__(self, n_classes=1, in_ch=3):
       super().__init__()
+      #######################
+      # Start YOUR CODE    #
+      #######################
       c = [16, 32, 64, 128, 256]  # Number of filters
 
     # Encoder (Contracting path)
