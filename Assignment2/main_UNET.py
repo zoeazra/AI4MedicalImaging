@@ -51,7 +51,7 @@ else:
     #set data location on your local computer. Data can be downloaded from:
     # https://surfdrive.surf.nl/files/index.php/s/epjCz4fip1pkWN7
     # PW: deeplearningformedicalimaging
-    data_dir = '/Users/elenaliarou/Documents/master/block4/dl/AI4MedicalImaging/Assignment 2/data/segmentation'
+    data_dir = '/Users/elenaliarou/Documents/master/block4/dl/AI4MedicalImaging/Assignment2/data/segmentation'
 
 print('data is loaded from ' + data_dir)
 # view data
@@ -190,7 +190,7 @@ if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser()
     # Optimizer hyperparameters
-    parser.add_argument('--optimizer_lr', default=0.1, type=float, nargs='+',
+    parser.add_argument('--optimizer_lr', default=0.1, type=float,
                         help='Learning rate to use')
     parser.add_argument('--batch_size', default=32, type=int,
                         help='Minibatch size')

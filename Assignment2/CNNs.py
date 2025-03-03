@@ -5,8 +5,43 @@ import pytorch_lightning as pl
 import torchvision.models as models
 import torch.nn.functional as F
 
-
 class SimpleConvNet(pl.LightningModule):
+    def __init__(self):
+        super().__init__()
+        #######################
+        # PUT YOUR CODE HERE  #
+        #######################
+        self.layers = nn.Sequential(
+            # conv block 1
+            nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
+
+            # conv block 2
+            nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2))
+
+        self.classifier = nn.Sequential(
+            # linear layers
+            nn.AdaptiveAvgPool2d(output_size=(4, 4)),
+            nn.Flatten(),
+            nn.Linear(in_features=4 * 4 * 32, out_features=60),
+            nn.ReLU(),
+            nn.Linear(in_features=60, out_features=1)
+        )
+        #######################
+        # END OF YOUR CODE    #
+        #######################
+
+    def forward(self, x):
+        x = self.layers(x)
+        x = self.classifier(x)
+        return x
+
+class CustomConvNet(pl.LightningModule):
     def __init__(self, num_classes=1):
         super().__init__()
         #######################
@@ -127,14 +162,30 @@ class UNet(pl.LightningModule):
       # Start YOUR CODE    #
       #######################
       # number of filter's list for each expanding and respecting contracting layer
-      c = [16, 32, 64, 128]
+      super().__init__()
+      c = [16, 32, 64, 128, 256]  # Number of filters
 
-      # first convolution layer receiving the image
-      # encoder layers
+    # Encoder (Contracting path)
+      self.enc1 = encoder_conv(in_ch, c[0])
+      self.enc2 = encoder_conv(c[0], c[1])
+      self.enc3 = encoder_conv(c[1], c[2])
+      self.enc4 = encoder_conv(c[2], c[3])
 
-      # decoder layers
+    # Bottleneck
+      self.bottleneck = nn.Sequential(
+        conv3x3_bn(c[3], c[4]),
+        conv3x3_bn(c[4], c[4])
+      )
 
-      # last layer returning the output
+    # Decoder (Expanding path)
+      self.dec4 = deconv(c[4], c[3])
+      self.dec3 = deconv(c[3], c[2])
+      self.dec2 = deconv(c[2], c[1])
+      self.dec1 = deconv(c[1], c[0])
+
+    # Output layer
+      self.final = nn.Conv2d(c[0], n_classes, kernel_size=1)
+
       #######################
       # END OF YOUR CODE    #
       #######################
@@ -143,20 +194,35 @@ class UNet(pl.LightningModule):
       # Start YOUR CODE    #
       #######################
       # encoder
+      x1 = self.enc1(x)
+      x2 = self.enc2(x1)
+      x3 = self.enc3(x2)
+      x4 = self.enc4(x3)
 
-      # decoder
+        # Bottleneck
+      x_b = self.bottleneck(x4)
+
+    # Decoding path with skip connections
+      x = self.dec4(x_b, x4)
+      x = self.dec3(x, x3)
+      x = self.dec2(x, x2)
+      x = self.dec1(x, x1)
 
       #######################
       # END OF YOUR CODE    #
       #######################
-      return x
+      return torch.sigmoid(self.final(x))
 
 
 def conv3x3_bn(ci, co):
     #######################
     # Start YOUR CODE    #
     #######################
-    pass
+    return nn.Sequential(
+        nn.Conv2d(ci, co, kernel_size=3, padding=1),
+        nn.BatchNorm2d(co),
+        nn.LeakyReLU(inplace=True)
+    )
     #######################
     # end YOUR CODE    #
     #######################
@@ -165,7 +231,12 @@ def encoder_conv(ci, co):
     #######################
     # Start YOUR CODE    #
     #######################
-    pass
+    return nn.Sequential(
+        conv3x3_bn(ci, co),
+        conv3x3_bn(co, co),
+        nn.MaxPool2d(kernel_size=2, stride=2)
+    )
+
     #######################
     # end YOUR CODE    #
     #######################
@@ -176,7 +247,12 @@ class deconv(nn.Module):
     #######################
     # Start YOUR CODE    #
     #######################
-    pass
+    super().__init__()
+    self.upconv = nn.ConvTranspose2d(ci, co, kernel_size=2, stride=2)
+    self.conv = nn.Sequential(
+        conv3x3_bn(ci, co),
+        conv3x3_bn(co, co)
+    )
     #######################
     # end YOUR CODE    #
     #######################
@@ -185,8 +261,10 @@ class deconv(nn.Module):
       #######################
       # Start YOUR CODE    #
       #######################
-      x=x1
+      
+    x1 = self.upconv(x1)
+    x = torch.cat([x1, x2], dim=1)  # Skip connection
+    return self.conv(x)
       #######################
       # end YOUR CODE    #
       #######################
-      return x

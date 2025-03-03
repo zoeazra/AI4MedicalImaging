@@ -26,7 +26,7 @@ from torchvision import transforms
 from sys import platform
 from Data_loader import Scan_Dataset, Scan_DataModule, Random_Rotate
 from visualization import show_data, show_data_logger
-from CNNs import SimpleConvNet, TransConvNet
+from CNNs import SimpleConvNet, TransConvNet, CustomConvNet
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 import wandb
@@ -49,7 +49,7 @@ else:
     # https://surfdrive.surf.nl/files/index.php/s/QWJUE37bHojMVKQ
     # PW: deeplearningformedicalimaging
     data_dir = '/Users/elenaliarou/Documents/master/block4/dl/AI4MedicalImaging/Assignment2/data/classification'
-    #data_dir = '/Users/zoeazra/Documents/CLS/Y1/DL4MI/AI4MedicalImaging/Assignment 2/data/classification'
+    #data_dir = '/Users/zoeazra/Documents/CLS/Y1/DL4MI/AI4MedicalImaging/Assignment2/data/classification'
 
 print('data is loaded from ' + data_dir)
 # view data
@@ -66,7 +66,7 @@ show_data(dataset,index,n_images_display=5)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 torch.device(device)
 
-models = {'custom_convnet': SimpleConvNet, 'transfer_convent': TransConvNet}
+models = {'custom_convnet': CustomConvNet, 'transfer_convent': TransConvNet, 'simple_convnet': SimpleConvNet}
 
 optimizers = {'adam': torch.optim.Adam,
               'sgd': torch.optim.SGD}
@@ -181,7 +181,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', default=16, type=int,
                         help='Minibatch size')
     parser.add_argument('--model_name', default='custom_convnet', type=str,
-                        help='defines model to use')
+                        help='defines model to use, choose between: custom_convnet, transfer_convent, simple_convnet')
     parser.add_argument('--optimizer_name', default='sgd', type=str,
                         help='optimizer options: adam and sgd (default)')
     # Other hyperparameters
