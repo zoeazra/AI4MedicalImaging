@@ -7,7 +7,7 @@ from scipy.ndimage import rotate
 from torch.utils.data import DataLoader, Dataset
 import pytorch_lightning as pl
 from torchvision import transforms
-from torchvision.transforms import ToPILImage, ToTensor
+import cv2
 
 
 # Data loader
@@ -19,9 +19,12 @@ class Scan_DataModule(pl.LightningDataModule):
     self.test_data_dir    = config['test_data_dir']
     self.batch_size       = config['batch_size']
     if transform:
-      self.train_transforms = transforms.Compose([Random_Rotate(0.1), 
-                                                  transforms.Lambda(lambda x: ToPILImage()(torch.tensor(x, dtype=torch.float32).permute(2, 0, 1)) if x.ndim == 3 else ToPILImage()(torch.tensor(x, dtype=torch.float32).unsqueeze(0))),
-                                                  transforms.ToTensor()])
+      self.train_transforms = transforms.Compose([
+                Random_Rotate(0.1),
+                Random_Flip(),
+                Random_GaussianBlur(),
+                transforms.ToTensor()
+            ])
     else:
       self.train_transforms = transforms.Compose([transforms.ToTensor()])
     self.val_transforms  = transforms.Compose([transforms.ToTensor()])
@@ -49,9 +52,7 @@ class Scan_DataModule_Segm(pl.LightningDataModule):
     self.test_data_dir    = config['test_data_dir']
     self.batch_size       = config['batch_size']
     if transform:
-      self.train_transforms = transforms.Compose([Random_Rotate_Seg(0.1), 
-                                                  transforms.Lambda(lambda x: ToPILImage()(torch.tensor(x, dtype=torch.float32).permute(2, 0, 1)) if x.ndim == 3 else ToPILImage()(torch.tensor(x, dtype=torch.float32).unsqueeze(0))),
-                                                  ToTensor_Seg()])
+      self.train_transforms = transforms.Compose([Random_Rotate_Seg(0.1), ToTensor_Seg()])
     else:
       self.train_transforms = transforms.Compose([ToTensor_Seg()])
     self.val_transforms   = transforms.Compose([ToTensor_Seg()])
@@ -171,3 +172,57 @@ class ToTensor_Seg(object):
     image = transforms.ToTensor()(image)
     mask = transforms.ToTensor()(mask)
     return {'image': image.clone(), 'mask': mask.clone()}
+
+
+class Random_Flip(object):
+    """Randomly apply horizontal and/or vertical flip to a NumPy image array with a given probability."""
+    def __init__(self, probability=0.5, horizontal=True, vertical=True):
+        """
+        Args:
+        - probability (float): Probability of applying a flip.
+        - horizontal (bool): Whether to allow horizontal flipping.
+        - vertical (bool): Whether to allow vertical flipping.
+        """
+        assert isinstance(probability, float) and 0 < probability <= 1, 'Probability must be a float between 0 and 1'
+        self.probability = probability
+        self.horizontal = horizontal
+        self.vertical = vertical
+
+    def __call__(self, sample):
+        # Apply flipping based on probability
+        if np.random.rand() < self.probability:
+            if self.horizontal and np.random.rand() > 0.5:
+                sample = np.fliplr(sample)  # Horizontal flip
+
+            if self.vertical and np.random.rand() > 0.5:
+                sample = np.flipud(sample)  # Vertical flip
+
+        return sample.copy()
+    
+import cv2
+
+class Random_GaussianBlur(object):
+    """Randomly apply Gaussian blur to a NumPy image array with a given probability."""
+    def __init__(self, probability=0.4, kernel_size=7, sigma=(2.0, 5.0)):
+        """
+        Args:
+        - probability (float): Probability of applying Gaussian blur.
+        - kernel_size (int): Size of the Gaussian kernel (must be odd).
+        - sigma (tuple): Range of standard deviation for Gaussian kernel.
+        """
+        assert isinstance(probability, float) and 0 < probability <= 1, 'Probability must be a float between 0 and 1'
+        assert kernel_size % 2 == 1, "Kernel size must be an odd number."
+        self.probability = probability
+        self.kernel_size = kernel_size
+        self.sigma = sigma
+
+    def __call__(self, sample):
+        if np.random.rand() < self.probability:
+            # Randomly select a sigma value within the specified range
+            sigma_value = np.random.uniform(self.sigma[0], self.sigma[1])
+
+            # Apply Gaussian blur using OpenCV
+            sample = cv2.GaussianBlur(sample, (self.kernel_size, self.kernel_size), sigma_value)
+
+        return sample.copy()
+  

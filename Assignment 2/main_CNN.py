@@ -24,12 +24,13 @@ import torchmetrics
 import torch.nn.functional as F
 from torchvision import transforms
 from sys import platform
-from Data_loader import Scan_Dataset, Scan_DataModule, Random_Rotate
+from Data_loader import Scan_Dataset, Scan_DataModule, Random_Rotate, Random_Flip, Random_GaussianBlur
 from visualization import show_data, show_data_logger
 from CNNs import SimpleConvNet, TransConvNet, CustomConvNet
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 import wandb
+
 
 #start interactieve sessie om wandb.login te runnen
 wandb.login()
@@ -59,7 +60,7 @@ index = 0
 # study the effect of augmentation here!
 dataset = Scan_Dataset(os.path.join(data_dir, nn_set))
 show_data(dataset,index,n_images_display=5)
-train_transforms = transforms.Compose([Random_Rotate(0.1), transforms.ToTensor()])
+train_transforms = transforms.Compose([Random_Rotate(0.1), Random_Flip(), Random_GaussianBlur(), transforms.ToTensor()])
 dataset = Scan_Dataset(os.path.join(data_dir, nn_set),transform = train_transforms)
 show_data(dataset,index,n_images_display=5)
 

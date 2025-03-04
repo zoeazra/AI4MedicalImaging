@@ -154,7 +154,7 @@ class TransConvNet(pl.LightningModule):
         x = self.classifier(x)  # Classification head
         return x
 
-class UNet(pl.LightningModule):
+class UNet2(pl.LightningModule):
   def __init__(self, n_classes=1, in_ch=3):
       super().__init__()
       #######################
@@ -265,3 +265,74 @@ class deconv(nn.Module):
       #######################
       # end YOUR CODE    #
       #######################
+
+class UNet(pl.LightningModule):
+  def __init__(self, n_classes=1, in_ch=3):
+      super().__init__()
+      #######################
+      # Start YOUR CODE    #
+      #######################
+      # number of filter's list for each expanding and respecting contracting layer
+      c = [16, 32, 64, 128]
+
+      # first convolution layer receiving the image
+      # encoder layers
+
+      # decoder layers
+
+      # last layer returning the output
+      #######################
+      # END OF YOUR CODE    #
+      #######################
+  def forward(self,x):
+      #######################
+      # Start YOUR CODE    #
+      #######################
+      # encoder
+
+      # decoder
+
+      #######################
+      # END OF YOUR CODE    #
+      #######################
+      return x
+
+
+def conv3x3_bn(ci, co):
+    #######################
+    # Start YOUR CODE    #
+    #######################
+    pass
+    #######################
+    # end YOUR CODE    #
+    #######################
+
+def encoder_conv(ci, co):
+    #######################
+    # Start YOUR CODE    #
+    #######################
+    pass
+    #######################
+    # end YOUR CODE    #
+    #######################
+
+class deconv(nn.Module):
+  def __init__(self, ci, co):
+    super(deconv, self).__init__()
+    #######################
+    # Start YOUR CODE    #
+    #######################
+    pass
+    #######################
+    # end YOUR CODE    #
+    #######################
+
+  def forward(self, x1, x2):
+      #######################
+      # Start YOUR CODE    #
+      #######################
+      x=x1
+      #######################
+      # end YOUR CODE    #
+      #######################
+      return x
