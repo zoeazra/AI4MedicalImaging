@@ -198,8 +198,6 @@ class Random_Flip(object):
                 sample = np.flipud(sample)  # Vertical flip
 
         return sample.copy()
-    
-import cv2
 
 class Random_GaussianBlur(object):
     """Randomly apply Gaussian blur to a NumPy image array with a given probability."""
