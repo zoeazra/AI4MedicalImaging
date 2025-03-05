@@ -52,7 +52,10 @@ class Scan_DataModule_Segm(pl.LightningDataModule):
     self.test_data_dir    = config['test_data_dir']
     self.batch_size       = config['batch_size']
     if transform:
-      self.train_transforms = transforms.Compose([Random_Rotate_Seg(0.1), ToTensor_Seg()])
+      self.train_transforms = transforms.Compose([Random_Rotate_Seg(0.1),
+                                                  Random_Flip_Seg(),
+                                                  Random_GaussianBlur_Seg(),
+                                                  ToTensor_Seg()])
     else:
       self.train_transforms = transforms.Compose([ToTensor_Seg()])
     self.val_transforms   = transforms.Compose([ToTensor_Seg()])
@@ -224,3 +227,57 @@ class Random_GaussianBlur(object):
 
         return sample.copy()
   
+
+
+class Random_Flip_Seg(object):
+    """Randomly apply horizontal and/or vertical flip to an image-mask pair with a given probability."""
+    def __init__(self, probability=0.5, horizontal=True, vertical=True):
+        """
+        Args:
+        - probability (float): Probability of applying a flip.
+        - horizontal (bool): Whether to allow horizontal flipping.
+        - vertical (bool): Whether to allow vertical flipping.
+        """
+        assert isinstance(probability, float) and 0 < probability <= 1, 'Probability must be a float between 0 and 1'
+        self.probability = probability
+        self.horizontal = horizontal
+        self.vertical = vertical
+
+    def __call__(self, sample):
+        image, mask = sample['image'], sample['mask']
+        
+        if np.random.rand() < self.probability:
+            if self.horizontal and np.random.rand() > 0.5:
+                image = np.fliplr(image)
+                mask = np.fliplr(mask)
+
+            if self.vertical and np.random.rand() > 0.5:
+                image = np.flipud(image)
+                mask = np.flipud(mask)
+
+        return {'image': image.copy(), 'mask': mask.copy()}
+
+
+class Random_GaussianBlur_Seg(object):
+    """Randomly apply Gaussian blur to an image-mask pair with a given probability (only applied to the image)."""
+    def __init__(self, probability=0.4, kernel_size=7, sigma=(2.0, 5.0)):
+        """
+        Args:
+        - probability (float): Probability of applying Gaussian blur.
+        - kernel_size (int): Size of the Gaussian kernel (must be odd).
+        - sigma (tuple): Range of standard deviation for Gaussian kernel.
+        """
+        assert isinstance(probability, float) and 0 < probability <= 1, 'Probability must be a float between 0 and 1'
+        assert kernel_size % 2 == 1, "Kernel size must be an odd number."
+        self.probability = probability
+        self.kernel_size = kernel_size
+        self.sigma = sigma
+
+    def __call__(self, sample):
+        image, mask = sample['image'], sample['mask']
+
+        if np.random.rand() < self.probability:
+            sigma_value = np.random.uniform(self.sigma[0], self.sigma[1])
+            image = cv2.GaussianBlur(image, (self.kernel_size, self.kernel_size), sigma_value)
+
+        return {'image': image.copy(), 'mask': mask.copy()}
