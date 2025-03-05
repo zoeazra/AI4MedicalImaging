@@ -86,6 +86,7 @@ class CustomConvNet(pl.LightningModule):
         
 
         self.classifier = nn.Sequential(
+            nn.Flatten(),
             nn.Linear(in_features=512, out_features=256),
             nn.LeakyReLU(),
             nn.Dropout(0.4),
@@ -137,14 +138,15 @@ class TransConvNet(pl.LightningModule):
 
         # Custom Classification Head
         self.classifier = nn.Sequential(
-            nn.Linear(2048, 512),
+
+            nn.Flatten(),
+            nn.Linear(in_features=2048, out_features=512),
             nn.LeakyReLU(),
             nn.Dropout(0.4),
-            nn.Linear(512, 128),
+            nn.Linear(in_features=512, out_features=128),
             nn.LeakyReLU(),
             nn.Dropout(0.3),
-            nn.Linear(128, num_classes),
-            nn.Sigmoid()  # For binary classification
+            nn.Linear(in_features=128, out_features=1),
         )
 
     def forward(self, x):
