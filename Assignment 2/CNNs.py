@@ -86,15 +86,13 @@ class CustomConvNet(pl.LightningModule):
         
 
         self.classifier = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(512, 256),
+            nn.Linear(in_features=512, out_features=256),
             nn.LeakyReLU(),
             nn.Dropout(0.4),
-            nn.Linear(256, 128),
+            nn.Linear(in_features=256, out_features=128),
             nn.LeakyReLU(),
             nn.Dropout(0.3),
-            nn.Linear(128, num_classes),
-            nn.Sigmoid()  # Binary classification
+            nn.Linear(in_features=128, out_features=1),
         )
         #######################
         # END OF YOUR CODE    #
