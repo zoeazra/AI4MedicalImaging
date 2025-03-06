@@ -17,4 +17,4 @@ cd $HOME/AI_for_medical_imaging_course/Assignment\ 2
 # Activate your environment
 source /gpfs/work5/0/prjs1312/venv/bin/activate
 # Run your code
-srun python -u main_CNN.py --max_epochs 2 --optimizer_name adam --optimizer_lr 0.0001 --batch_size 64 --experiment_name test_cnn1 --model_name custom_convnet
+srun python -u main_CNN.py --max_epochs 100 --optimizer_name adam --optimizer_lr 0.0001 --batch_size 64 --experiment_name test_cnn_elena1 --model_name custom_convnet

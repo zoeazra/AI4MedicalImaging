@@ -89,7 +89,7 @@ class CustomConvNet(pl.LightningModule):
             nn.Flatten(),
             nn.Linear(in_features=512, out_features=256),
             nn.LeakyReLU(),
-            nn.Dropout(0.4),
+            nn.Dropout(0.5),
             nn.Linear(in_features=256, out_features=128),
             nn.LeakyReLU(),
             nn.Dropout(0.3),
@@ -154,7 +154,7 @@ class TransConvNet(pl.LightningModule):
         x = self.classifier(x)  # Classification head
         return x
 
-class UNet2(pl.LightningModule):
+class UNet(pl.LightningModule):
   def __init__(self, n_classes=1, in_ch=3):
       super().__init__()
       #######################
@@ -208,7 +208,7 @@ class UNet2(pl.LightningModule):
       #######################
       # END OF YOUR CODE    #
       #######################
-      return torch.sigmoid(self.final(x))
+      return self.final(x)
 
 
 def conv3x3_bn(ci, co):
@@ -247,7 +247,7 @@ class deconv(nn.Module):
     super().__init__()
     self.upconv = nn.ConvTranspose2d(ci, co, kernel_size=2, stride=2)
     self.conv = nn.Sequential(
-        conv3x3_bn(ci, co),
+        conv3x3_bn(2 * co, co),
         conv3x3_bn(co, co)
     )
     #######################
@@ -266,73 +266,34 @@ class deconv(nn.Module):
       # end YOUR CODE    #
       #######################
 
-class UNet(pl.LightningModule):
-  def __init__(self, n_classes=1, in_ch=3):
-      super().__init__()
-      #######################
-      # Start YOUR CODE    #
-      #######################
-      # number of filter's list for each expanding and respecting contracting layer
-      c = [16, 32, 64, 128]
-
-      # first convolution layer receiving the image
-      # encoder layers
-
-      # decoder layers
-
-      # last layer returning the output
-      #######################
-      # END OF YOUR CODE    #
-      #######################
-  def forward(self,x):
-      #######################
-      # Start YOUR CODE    #
-      #######################
-      # encoder
-
-      # decoder
-
-      #######################
-      # END OF YOUR CODE    #
-      #######################
-      return x
 
 
-def conv3x3_bn(ci, co):
-    #######################
-    # Start YOUR CODE    #
-    #######################
-    pass
-    #######################
-    # end YOUR CODE    #
-    #######################
+class FocalTverskyLoss(nn.Module):
+    def __init__(self, alpha=0.7, gamma=0.75, smooth=1e-6):
+        """
+        alpha: Weight for false negatives (higher = recall-focused).
+        gamma: Focal term (higher = focuses on hard examples).
+        smooth: Small constant to avoid division by zero.
+        """
+        super(FocalTverskyLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.smooth = smooth
 
-def encoder_conv(ci, co):
-    #######################
-    # Start YOUR CODE    #
-    #######################
-    pass
-    #######################
-    # end YOUR CODE    #
-    #######################
+    def forward(self, logits, targets):
+        """
+        logits: Raw model outputs (before sigmoid).
+        targets: Binary labels (0 or 1).
+        """
+        probs = torch.sigmoid(logits)  # Convert logits to probabilities
+        true_pos = torch.sum(targets * probs, dim=0)
+        false_neg = torch.sum(targets * (1 - probs), dim=0)
+        false_pos = torch.sum((1 - targets) * probs, dim=0)
 
-class deconv(nn.Module):
-  def __init__(self, ci, co):
-    super(deconv, self).__init__()
-    #######################
-    # Start YOUR CODE    #
-    #######################
-    pass
-    #######################
-    # end YOUR CODE    #
-    #######################
+        tversky_index = (true_pos + self.smooth) / (
+            true_pos + self.alpha * false_neg + (1 - self.alpha) * false_pos + self.smooth
+        )
 
-  def forward(self, x1, x2):
-      #######################
-      # Start YOUR CODE    #
-      #######################
-      x=x1
-      #######################
-      # end YOUR CODE    #
-      #######################
-      return x
+        loss = (1 - tversky_index) ** self.gamma  # Focal scaling
+        return loss.mean()
+    

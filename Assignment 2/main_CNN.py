@@ -26,7 +26,7 @@ from torchvision import transforms
 from sys import platform
 from Data_loader import Scan_Dataset, Scan_DataModule, Random_Rotate, Random_Flip, Random_GaussianBlur
 from visualization import show_data, show_data_logger
-from CNNs import SimpleConvNet, TransConvNet, CustomConvNet
+from CNNs import SimpleConvNet, TransConvNet, CustomConvNet, FocalTverskyLoss
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 import wandb
@@ -49,8 +49,8 @@ else:
     #set data location on your local computer. Data can be downloaded from:
     # https://surfdrive.surf.nl/files/index.php/s/QWJUE37bHojMVKQ
     # PW: deeplearningformedicalimaging
-    # data_dir = '/Users/elenaliarou/Documents/master/block4/dl/AI4MedicalImaging/Assignment 2/data/classification'
-    data_dir = '/Users/zoeazra/Documents/CLS/Y1/DL4MI/AI4MedicalImaging/Assignment 2/data/classification'
+    data_dir = '/Users/elenaliarou/Documents/master/block4/dl/AI4MedicalImaging/Assignment 2/data/classification'
+    #data_dir = '/Users/zoeazra/Documents/CLS/Y1/DL4MI/AI4MedicalImaging/Assignment 2/data/classification'
 
 print('data is loaded from ' + data_dir)
 # view data
@@ -100,8 +100,10 @@ class Classifier(pl.LightningModule):
         y_hat = self.model(X).squeeze(1)
         y_prob = torch.sigmoid(y_hat)
         self.y_prob=y_prob
+        #loss = F.binary_cross_entropy_with_logits(y_hat, y.float()) #initial loss
+        loss_fn = FocalTverskyLoss(alpha=0.7, gamma=0.75)  # Instantiate the loss
+        loss = loss_fn(y_hat, y.float())  # Compute loss
 
-        loss = F.binary_cross_entropy_with_logits(y_hat, y.float())
         self.log(f'{nn_set}_loss', loss, on_step=False, on_epoch=True)
 
         for metric_name, metric_fn in metrics.items():
