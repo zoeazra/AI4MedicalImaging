@@ -67,7 +67,7 @@ show_data(dataset,index,n_images_display=5)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 torch.device(device)
 
-models = {'custom_convnet': CustomConvNet, 'transfer_convent': TransConvNet, 'simple_convnet': SimpleConvNet}
+models = {'custom_convnet': CustomConvNet, 'transfer_convnet': TransConvNet, 'simple_convnet': SimpleConvNet}
 
 optimizers = {'adam': torch.optim.Adam,
               'sgd': torch.optim.SGD}
