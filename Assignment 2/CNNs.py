@@ -239,32 +239,23 @@ def encoder_conv(ci, co):
     #######################
 
 class deconv(nn.Module):
-  def __init__(self, ci, co):
-    super(deconv, self).__init__()
-    #######################
-    # Start YOUR CODE    #
-    #######################
-    super().__init__()
-    self.upconv = nn.ConvTranspose2d(ci, co, kernel_size=2, stride=2)
-    self.conv = nn.Sequential(
-        conv3x3_bn(2 * co, co),
-        conv3x3_bn(co, co)
-    )
-    #######################
-    # end YOUR CODE    #
-    #######################
+    def __init__(self, ci, co):
+        super(deconv, self).__init__()
+        self.upconv = nn.ConvTranspose2d(ci, co, kernel_size=2, stride=2)
+        self.conv = nn.Sequential(
+            conv3x3_bn(2 * co, co),
+            conv3x3_bn(co, co)
+        )
 
-  def forward(self, x1, x2):
-      #######################
-      # Start YOUR CODE    #
-      #######################
-      
-    x1 = self.upconv(x1)
-    x = torch.cat([x1, x2], dim=1)  # Skip connection
-    return self.conv(x)
-      #######################
-      # end YOUR CODE    #
-      #######################
+    def forward(self, x1, x2):
+        x1 = self.upconv(x1)
+
+        # Ensure x2 matches x1 in spatial dimensions before concatenation
+        if x1.shape[2:] != x2.shape[2:]:
+            x2 = F.interpolate(x2, size=x1.shape[2:], mode="bilinear", align_corners=False)
+
+        x = torch.cat([x1, x2], dim=1)  # Skip connection
+        return self.conv(x)
 
 
 
