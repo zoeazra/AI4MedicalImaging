@@ -26,7 +26,7 @@ from torchvision import transforms
 from sys import platform
 from Data_loader import Scan_Dataset_Segm, Scan_DataModule_Segm, Random_Rotate_Seg, ToTensor_Seg, Random_Flip_Seg, Random_GaussianBlur_Seg
 from visualization import show_data_Unet, show_data_logger_Unet
-from CNNs import UNet
+from CNNs import UNet, SegmentationLoss
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 import wandb
@@ -105,7 +105,9 @@ class Segmenter(pl.LightningModule):
         del X, y_hat, batch
 
         #pos_weight = torch.tensor([config_segm['loss_pos_weight']]).float().to(device)
-        loss = F.binary_cross_entropy(y_prob,y)
+        #loss = F.binary_cross_entropy(y_prob,y)
+        loss_fn = SegmentationLoss()
+        loss = loss_fn(y_prob, y)
         self.log(f"{nn_set}_loss", loss, on_step=False, on_epoch=True)
 
         for i, (metric_name, metric_fn) in enumerate(metrics.items()):
