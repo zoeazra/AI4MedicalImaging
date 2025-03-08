@@ -171,6 +171,7 @@ class UNet(pl.LightningModule):
     # Bottleneck
       self.bottleneck = nn.Sequential(
         conv3x3_bn(c[3], c[4]),
+        nn.Dropout(0.2),
         conv3x3_bn(c[4], c[4])
       )
 
@@ -220,7 +221,6 @@ def conv3x3_bn(ci, co):
         nn.Conv2d(ci, co, kernel_size=3, padding=1),
         nn.BatchNorm2d(co),
         nn.LeakyReLU(inplace=True),
-        nn.Dropout(0.2)  # Dropout for regularization
     )
     #######################
     # end YOUR CODE    #
@@ -256,11 +256,11 @@ class deconv(nn.Module):
 
     def forward(self, x1, x2):
         x1 = self.upconv(x1)  # Upsample
+        if x1.shape[2:] != x2.shape[2:]:
+             x2 = F.interpolate(x2, size=x1.shape[2:], mode="bilinear", align_corners=False)
         x2 = self.skip_layer(x2)  # Apply skip layer
-        skip_resized = F.interpolate(x2, size=x1.shape[2:], mode="bilinear", align_corners=False)
-        x = torch.cat([x1, skip_resized], dim=1)  # Concatenate
+        x = torch.cat([x1, x2], dim=1)  # Skip connection
         return self.conv(x)
-
 
 
 
@@ -292,49 +292,3 @@ class FocalTverskyLoss(nn.Module):
 
         loss = (1 - tversky_index) ** self.gamma  # Focal scaling
         return loss.mean()
-
-class SegmentationLoss(nn.Module):
-    """
-    A combined loss function for dermoscopic image segmentation.
-
-    Supports:
-    - BCE + Dice Loss (default): Handles class imbalance while maintaining pixel-wise classification.
-
-    Args:
-        smooth (float): Smoothing factor to avoid division by zero in Dice loss. Default: 1e-6.
-    """
-    
-    def __init__(self, smooth=1e-6):
-        super(SegmentationLoss, self).__init__()
-        self.smooth = smooth
-
-    def dice_loss(self, y_pred, y_true):
-        """
-        Compute the Dice loss, which measures the overlap between predicted and true masks.
-
-        Args:
-            y_pred (Tensor): Predicted mask logits (before sigmoid).
-            y_true (Tensor): Ground truth mask (binary).
-
-        Returns:
-            Tensor: Dice loss value.
-        """
-        intersection = (y_pred * y_true).sum(dim=(2, 3))
-        union = y_pred.sum(dim=(2, 3)) + y_true.sum(dim=(2, 3))
-        return 1 - ((2. * intersection + self.smooth) / (union + self.smooth)).mean()
-
-    def forward(self, y_pred, y_true):
-        """
-        Compute the combined loss based on the selected mode.
-
-        Args:
-            y_pred (Tensor): Predicted mask logits (before sigmoid).
-            y_true (Tensor): Ground truth mask (binary).
-
-        Returns:
-            Tensor: Combined loss value.
-        """
-        bce = F.binary_cross_entropy_with_logits(y_pred, y_true)
-        dice = self.dice_loss(y_pred, y_true)
-        return bce + dice
-        
