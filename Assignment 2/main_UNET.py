@@ -24,7 +24,7 @@ import torchmetrics
 import torch.nn.functional as F
 from torchvision import transforms
 from sys import platform
-from Data_loader import Scan_Dataset_Segm, Scan_DataModule_Segm, Random_Rotate_Seg, ToTensor_Seg
+from Data_loader import Scan_Dataset_Segm, Scan_DataModule_Segm, Random_Rotate_Seg, ToTensor_Seg, Random_Flip_Seg, Random_GaussianBlur_Seg
 from visualization import show_data_Unet, show_data_logger_Unet
 from CNNs import UNet
 import pytorch_lightning as pl
@@ -46,7 +46,7 @@ np.random.seed(SEED)
 np.random.RandomState(SEED)
 
 if platform == "linux" or platform == "linux2":
-    data_dir = '/projects/0/gpuuva035/data/segmentation'
+    data_dir = '/gpfs/work5/0/prjs1312/data/segmentation'
 else:
     #set data location on your local computer. Data can be downloaded from:
     # https://surfdrive.surf.nl/files/index.php/s/epjCz4fip1pkWN7
@@ -59,7 +59,10 @@ nn_set = 'train' # ['train', 'val', 'test']
 index = 0
 dataset = Scan_Dataset_Segm(os.path.join(data_dir, nn_set))
 show_data_Unet(dataset,index,n_images_display=5)
-train_transforms = transforms.Compose([Random_Rotate_Seg(0.1), ToTensor_Seg()])
+train_transforms = transforms.Compose([Random_Rotate_Seg(0.1), 
+                                    Random_Flip_Seg(), 
+                                    Random_GaussianBlur_Seg(),
+                                    ToTensor_Seg()])
 dataset = Scan_Dataset_Segm(os.path.join(data_dir, nn_set),transform = train_transforms)
 show_data_Unet(dataset,index,n_images_display=5)
 
@@ -190,7 +193,7 @@ if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser()
     # Optimizer hyperparameters
-    parser.add_argument('--optimizer_lr', default=0.1, type=float, nargs='+',
+    parser.add_argument('--optimizer_lr', default=0.1, type=float,
                         help='Learning rate to use')
     parser.add_argument('--batch_size', default=32, type=int,
                         help='Minibatch size')

@@ -24,12 +24,13 @@ import torchmetrics
 import torch.nn.functional as F
 from torchvision import transforms
 from sys import platform
-from Data_loader import Scan_Dataset, Scan_DataModule, Random_Rotate
+from Data_loader import Scan_Dataset, Scan_DataModule, Random_Rotate, Random_Flip, Random_GaussianBlur
 from visualization import show_data, show_data_logger
-from CNNs import SimpleConvNet
+from CNNs import SimpleConvNet, TransConvNet, CustomConvNet, FocalTverskyLoss
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 import wandb
+
 
 #start interactieve sessie om wandb.login te runnen
 wandb.login()
@@ -43,13 +44,13 @@ np.random.seed(SEED)
 np.random.RandomState(SEED)
 
 if platform == "linux" or platform == "linux2":
-    data_dir = '/projects/0/gpuuva035/data/classification'
+    data_dir = '/gpfs/work5/0/prjs1312/data/classification'
 else:
     #set data location on your local computer. Data can be downloaded from:
     # https://surfdrive.surf.nl/files/index.php/s/QWJUE37bHojMVKQ
     # PW: deeplearningformedicalimaging
-    # data_dir = '/Users/elenaliarou/Documents/master/block4/dl/AI4MedicalImaging/Assignment 2/data/classification'
-    data_dir = '/Users/zoeazra/Documents/CLS/Y1/DL4MI/AI4MedicalImaging/Assignment 2/data/classification'
+    data_dir = '/Users/elenaliarou/Documents/master/block4/dl/AI4MedicalImaging/Assignment 2/data/classification'
+    #data_dir = '/Users/zoeazra/Documents/CLS/Y1/DL4MI/AI4MedicalImaging/Assignment 2/data/classification'
 
 print('data is loaded from ' + data_dir)
 # view data
@@ -59,14 +60,14 @@ index = 0
 # study the effect of augmentation here!
 dataset = Scan_Dataset(os.path.join(data_dir, nn_set))
 show_data(dataset,index,n_images_display=5)
-train_transforms = transforms.Compose([Random_Rotate(0.1), transforms.ToTensor()])
+train_transforms = transforms.Compose([Random_Rotate(0.1), Random_Flip(), Random_GaussianBlur(), transforms.ToTensor()])
 dataset = Scan_Dataset(os.path.join(data_dir, nn_set),transform = train_transforms)
 show_data(dataset,index,n_images_display=5)
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 torch.device(device)
 
-models = {'custom_convnet': SimpleConvNet}
+models = {'custom_convnet': CustomConvNet, 'transfer_convnet': TransConvNet, 'simple_convnet': SimpleConvNet}
 
 optimizers = {'adam': torch.optim.Adam,
               'sgd': torch.optim.SGD}
@@ -99,8 +100,10 @@ class Classifier(pl.LightningModule):
         y_hat = self.model(X).squeeze(1)
         y_prob = torch.sigmoid(y_hat)
         self.y_prob=y_prob
+        #loss = F.binary_cross_entropy_with_logits(y_hat, y.float()) #initial loss
+        loss_fn = FocalTverskyLoss(alpha=0.7, gamma=0.75)  # Instantiate the loss
+        loss = loss_fn(y_hat, y.float())  # Compute loss
 
-        loss = F.binary_cross_entropy_with_logits(y_hat, y.float())
         self.log(f'{nn_set}_loss', loss, on_step=False, on_epoch=True)
 
         for metric_name, metric_fn in metrics.items():
@@ -176,18 +179,18 @@ if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser()
     # Optimizer hyperparameters
-    parser.add_argument('--optimizer_lr', default=0.1, type=float, nargs='+',
+    parser.add_argument('--optimizer_lr', default=0.1, type=float,
                         help='Learning rate to use')
     parser.add_argument('--batch_size', default=16, type=int,
                         help='Minibatch size')
     parser.add_argument('--model_name', default='custom_convnet', type=str,
-                        help='defines model to use')
+                        help='defines model to use, choose between: custom_convnet, transfer_convent, simple_convnet')
     parser.add_argument('--optimizer_name', default='sgd', type=str,
                         help='optimizer options: adam and sgd (default)')
     # Other hyperparameters
     parser.add_argument('--max_epochs', default=10, type=int,
                         help='Max number of epochs')
-    parser.add_argument('--experiment_name', default='test1', type=str,
+    parser.add_argument('--experiment_name', default='test_cnn', type=str,
                         help='name of experiment')
     parser.add_argument('--checkpoint_folder_path', default=False, type=str,
                         help='path of experiment to load')
