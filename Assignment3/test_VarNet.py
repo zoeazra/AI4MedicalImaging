@@ -7,7 +7,7 @@ LICENSE file in the root directory of this source tree.
 import os
 import pathlib
 from argparse import ArgumentParser
-from evaluation_metrics import ssim, nmse
+from evaluation_metrics import ssim, nmse, mse, psnr
 import h5py
 
 import pytorch_lightning as pl
@@ -260,7 +260,37 @@ def evaluate_test_data_quantitatively(datapath, reconpath):
     # Use: gt = center_crop(gt, recon.shape)
 
     # quantitative evaluation
-    pass
+    metrics = {"MSE": [], "NMSE": [], "PSNR": [], "SSIM": []}
+
+    for fname in os.listdir(datapath):
+        if not fname.endswith(".h5"):
+            continue
+        
+        gt_file = os.path.join(datapath, fname)
+        recon_file = os.path.join(reconpath, fname)
+
+        with h5py.File(gt_file, "r") as f_gt, h5py.File(recon_file, "r") as f_recon:
+            # Load k-space data
+            kspace_gt = f_gt["kspace"][:]  # Ground truth k-space
+            kspace_recon = f_recon["kspace"][:]  # Reconstructed k-space
+            
+            # Convert to image domain using inverse FFT
+            gt = np.abs(np.fft.ifft2(kspace_gt))
+            recon = np.abs(np.fft.ifft2(kspace_recon))
+
+            # Ensure the ground truth is cropped to match the reconstructed image size
+            gt = center_crop(gt, recon.shape[-2:])
+
+            # Compute metrics
+            metrics["MSE"].append(mse(gt, recon))
+            metrics["NMSE"].append(nmse(gt, recon))
+            metrics["PSNR"].append(psnr(gt, recon))
+            metrics["SSIM"].append(ssim(gt, recon))
+
+    # Compute mean values
+    avg_metrics = {key: np.mean(values) for key, values in metrics.items()}
+
+    return avg_metrics
 
     #######################
     # END OF YOUR CODE    #
@@ -280,10 +310,48 @@ def evaluate_test_data_qualitatively(datapath, reconpath):
     # Use: gt = center_crop(gt, recon.shape)
 
     # qualitative evaluation
-    pass
-    #######################
-    # END OF YOUR CODE    #
-    #######################
+    gt_files = sorted([f for f in os.listdir(datapath) if f.endswith(".h5")])
+    recon_files = sorted([f for f in os.listdir(reconpath) if f.endswith(".h5")])
+
+    num_samples = len(gt_files)  # Adjust if fewer files exist
+
+    for i in range(num_samples):
+        gt_file = os.path.join(datapath, gt_files[i])
+        recon_file = os.path.join(reconpath, recon_files[i])
+
+        with h5py.File(gt_file, "r") as f_gt, h5py.File(recon_file, "r") as f_recon:
+            # Load k-space data & perform inverse FFT
+            kspace_gt = f_gt["kspace"][0]  # First slice
+            gt_image = np.abs(np.fft.ifft2(kspace_gt))  # Convert to image domain
+            
+            # Load reconstructed image (already in image domain)
+            recon_data = f_recon["reconstruction"][0]  # First slice
+            recon_image = np.abs(np.fft.ifft2(recon_data))  # Convert k-space to image domain
+
+            # Ensure ground truth is cropped to match reconstruction size
+            gt_image = center_crop(gt_image, recon_image.shape)
+
+            # Compute magnitude, phase, real, imaginary components
+            gt_mag, gt_phase, gt_real, gt_imag = np.abs(gt_image), np.angle(gt_image), np.real(gt_image), np.imag(gt_image)
+            recon_mag, recon_phase, recon_real, recon_imag = np.abs(recon_image), np.angle(recon_image), np.real(recon_image), np.imag(recon_image)
+
+            # Plot results
+            fig, axes = plt.subplots(4, 2, figsize=(10, 12))
+            titles = ["Magnitude", "Phase", "Real", "Imaginary"]
+            gt_components = [gt_mag, gt_phase, gt_real, gt_imag]
+            recon_components = [recon_mag, recon_phase, recon_real, recon_imag]
+
+            for j in range(4):
+                axes[j, 0].imshow(gt_components[j], cmap="gray")
+                axes[j, 0].set_title(f"GT {titles[j]}")
+                axes[j, 1].imshow(recon_components[j], cmap="gray")
+                axes[j, 1].set_title(f"Reconstructed {titles[j]}")
+
+                for ax in axes[j]:
+                    ax.axis("off")
+
+            plt.tight_layout()
+            plt.show()
     return
 
 
