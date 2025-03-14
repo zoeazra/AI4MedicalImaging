@@ -13,6 +13,7 @@ import h5py
 import pytorch_lightning as pl
 import numpy as np
 import matplotlib.pyplot as plt
+import glob
 
 from fastmri.data.mri_data import fetch_dir
 from fastmri.data.subsample import create_mask_for_mask_type
@@ -101,7 +102,7 @@ def build_args():
     batch_size = 1
 
     # set defaults based on optional directory config
-    data_path = "/content/gdrive/MyDrive/DL_4_MI/Assigment3/FastMRIdata/"
+    data_path = "/gpfs/work5/0/prjs1312/Recon_exercise/FastMRIdata/"
     default_root_dir = fetch_dir("log_path", path_config) / "varnet" / "varnet_demo"
 
     # client arguments
@@ -258,39 +259,43 @@ def evaluate_test_data_quantitatively(datapath, reconpath):
     # NOTE: Reconstructed image is cropped by the VarNet
     # the ground truth image still needs to be cropped 
     # Use: gt = center_crop(gt, recon.shape)
-
-    # quantitative evaluation
     metrics = {"MSE": [], "NMSE": [], "PSNR": [], "SSIM": []}
+    # quantitative evaluation
+    gt_files = sorted(glob.glob(os.path.join(datapath, "*.h5")))
+    recon_files = sorted(glob.glob(os.path.join(reconpath, "*.h5")))
 
-    for fname in os.listdir(datapath):
-        if not fname.endswith(".h5"):
-            continue
-        
-        gt_file = os.path.join(datapath, fname)
-        recon_file = os.path.join(reconpath, fname)
+    # Create a dictionary to match recon files by filename
+    recon_dict = {os.path.basename(f): f for f in recon_files}
+
+    for gt_file in gt_files:
+        fname = os.path.basename(gt_file)
+        if fname not in recon_dict:
+            print(f"Warning: No corresponding reconstruction found for {fname}")
+            continue  # Skip unmatched files
+
+        recon_file = recon_dict[fname]
 
         with h5py.File(gt_file, "r") as f_gt, h5py.File(recon_file, "r") as f_recon:
-            # Load k-space data
-            kspace_gt = f_gt["kspace"][:]  # Ground truth k-space
-            kspace_recon = f_recon["kspace"][:]  # Reconstructed k-space
-            
-            # Convert to image domain using inverse FFT
-            gt = np.abs(np.fft.ifft2(kspace_gt))
-            recon = np.abs(np.fft.ifft2(kspace_recon))
+            gt = f_gt["reconstruction_rss"][:]  
+            recon = f_recon["reconstruction"][:]  
 
-            # Ensure the ground truth is cropped to match the reconstructed image size
-            gt = center_crop(gt, recon.shape[-2:])
-
+            # Ensure the crop is applied only to height and width dimensions
+            gt = center_crop(gt, recon.shape[1:])
             # Compute metrics
             metrics["MSE"].append(mse(gt, recon))
             metrics["NMSE"].append(nmse(gt, recon))
             metrics["PSNR"].append(psnr(gt, recon))
             metrics["SSIM"].append(ssim(gt, recon))
 
-    # Compute mean values
-    avg_metrics = {key: np.mean(values) for key, values in metrics.items()}
+    # Compute mean and std for each metric
+    avg_metrics = {key: np.mean(values) if values else float('nan') for key, values in metrics.items()}
+    std_metrics = {key: np.std(values) if values else float('nan') for key, values in metrics.items()}
 
-    return avg_metrics
+    # Print results
+    print("Evaluation Results:")
+    for key in metrics.keys():
+        print(f"{key}: Mean = {avg_metrics[key]:.4f}, Std = {std_metrics[key]:.4f}")
+
 
     #######################
     # END OF YOUR CODE    #
@@ -298,7 +303,7 @@ def evaluate_test_data_quantitatively(datapath, reconpath):
     return
 
 
-def evaluate_test_data_qualitatively(datapath, reconpath):
+def evaluate_test_data_qualitatively(datapath, reconpath, save_dir="qualitative_results"):
     #######################
     # Start YOUR CODE    #
     #######################
@@ -310,57 +315,75 @@ def evaluate_test_data_qualitatively(datapath, reconpath):
     # Use: gt = center_crop(gt, recon.shape)
 
     # qualitative evaluation
-    gt_files = sorted([f for f in os.listdir(datapath) if f.endswith(".h5")])
-    recon_files = sorted([f for f in os.listdir(reconpath) if f.endswith(".h5")])
+    os.makedirs(save_dir, exist_ok=True)
 
-    num_samples = len(gt_files)  # Adjust if fewer files exist
+    # Get sorted lists of files
+    gt_files = sorted(glob.glob(os.path.join(datapath, "*.h5")))
+    recon_files = sorted(glob.glob(os.path.join(reconpath, "*.h5")))
 
-    for i in range(num_samples):
-        gt_file = os.path.join(datapath, gt_files[i])
-        recon_file = os.path.join(reconpath, recon_files[i])
+    # Create a dictionary to match recon files by filename
+    recon_dict = {os.path.basename(f): f for f in recon_files}
+
+    for gt_file in gt_files:
+        fname = os.path.basename(gt_file)
+        if fname not in recon_dict:
+            print(f"Warning: No corresponding reconstruction found for {fname}")
+            continue  # Skip unmatched files
+
+        recon_file = recon_dict[fname]
 
         with h5py.File(gt_file, "r") as f_gt, h5py.File(recon_file, "r") as f_recon:
-            # Load k-space data & perform inverse FFT
-            kspace_gt = f_gt["kspace"][0]  # First slice
-            gt_image = np.abs(np.fft.ifft2(kspace_gt))  # Convert to image domain
-            
-            # Load reconstructed image (already in image domain)
-            recon_data = f_recon["reconstruction"][0]  # First slice
-            recon_image = np.abs(np.fft.ifft2(recon_data))  # Convert k-space to image domain
+            print(f"Evaluating {fname}...")
 
-            # Ensure ground truth is cropped to match reconstruction size
-            gt_image = center_crop(gt_image, recon_image.shape)
+            # Load ground truth and reconstruction
+            gt = f_gt["reconstruction_rss"][:]
+            recon = f_recon["reconstruction"][:]
+            gt = center_crop(gt, recon.shape[1:])  # Crop ground truth to match reconstruction size
 
-            # Compute magnitude, phase, real, imaginary components
-            gt_mag, gt_phase, gt_real, gt_imag = np.abs(gt_image), np.angle(gt_image), np.real(gt_image), np.imag(gt_image)
-            recon_mag, recon_phase, recon_real, recon_imag = np.abs(recon_image), np.angle(recon_image), np.real(recon_image), np.imag(recon_image)
+            # Select center slice
+            center_slice_idx = gt.shape[0] // 2
+            gt_slice = gt[center_slice_idx]
+            recon_slice = recon[center_slice_idx]
+
+            # Compute magnitude, phase, real, imaginary
+            gt_mag, gt_phase, gt_real, gt_imag = np.abs(gt_slice), np.angle(gt_slice), np.real(gt_slice), np.imag(gt_slice)
+            recon_mag, recon_phase, recon_real, recon_imag = np.abs(recon_slice), np.angle(recon_slice), np.real(recon_slice), np.imag(recon_slice)
+
+
+            # Store all components
+            gt_components = [gt_mag, gt_phase, gt_real, gt_imag]
+            recon_components = [recon_mag, recon_phase, recon_real, recon_imag]
+            titles = ["Magnitude", "Phase", "Real", "Imaginary"]
 
             # Plot results
             fig, axes = plt.subplots(4, 2, figsize=(10, 12))
-            titles = ["Magnitude", "Phase", "Real", "Imaginary"]
-            gt_components = [gt_mag, gt_phase, gt_real, gt_imag]
-            recon_components = [recon_mag, recon_phase, recon_real, recon_imag]
 
             for j in range(4):
-                axes[j, 0].imshow(gt_components[j], cmap="gray")
+                axes[j, 0].imshow(np.squeeze(gt_components[j]), cmap="gray", vmin=0, vmax=1)
                 axes[j, 0].set_title(f"GT {titles[j]}")
-                axes[j, 1].imshow(recon_components[j], cmap="gray")
+                axes[j, 1].imshow(np.squeeze(recon_components[j]), cmap="gray", vmin=0, vmax=1)
                 axes[j, 1].set_title(f"Reconstructed {titles[j]}")
 
                 for ax in axes[j]:
                     ax.axis("off")
 
             plt.tight_layout()
-            plt.show()
+
+            # Save the figure
+            save_path = os.path.join(save_dir, f"{fname.replace('.h5', '.png')}")
+            plt.savefig(save_path, dpi=300)
+
+            plt.close()  # Close figure to free memory
+
     return
 
 
 if __name__ == "__main__":
     # run testing the network
     run_cli()
-    # datapath = 'FastMRIdata/'
-    # reconpath = 'varnet/varnet_demo/reconstructions/'
+    datapath = '/gpfs/work5/0/prjs1312/Recon_exercise/FastMRIdata/multicoil_test/'
+    reconpath = 'varnet/varnet_demo/reconstructions/'
     # # quantitativaly evaluate data
-    # evaluate_test_data_quantitatively(datapath, reconpath)
+    evaluate_test_data_quantitatively(datapath, reconpath)
     # # qualitatively
-    # evaluate_test_data_qualitatively(datapath, reconpath)
+    evaluate_test_data_qualitatively(datapath, reconpath)
