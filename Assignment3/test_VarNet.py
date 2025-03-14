@@ -276,16 +276,18 @@ def evaluate_test_data_quantitatively(datapath, reconpath):
         recon_file = recon_dict[fname]
 
         with h5py.File(gt_file, "r") as f_gt, h5py.File(recon_file, "r") as f_recon:
-            gt = f_gt["reconstruction_rss"][:]  
+            kspace = f_gt["kspace"][:]  # Load k-space
+            gt = np.fft.ifftshift(np.fft.ifft2(np.fft.fftshift(kspace)))
             recon = f_recon["reconstruction"][:]  
+            gt = np.squeeze(gt)
 
             # Ensure the crop is applied only to height and width dimensions
             gt = center_crop(gt, recon.shape[1:])
             # Compute metrics
             metrics["MSE"].append(mse(gt, recon))
             metrics["NMSE"].append(nmse(gt, recon))
-            metrics["PSNR"].append(psnr(gt, recon))
-            metrics["SSIM"].append(ssim(gt, recon))
+            metrics["PSNR"].append(psnr(np.abs(gt), np.abs(recon)))
+            metrics["SSIM"].append(ssim(np.abs(gt), np.abs(recon)))
 
     # Compute mean and std for each metric
     avg_metrics = {key: np.mean(values) if values else float('nan') for key, values in metrics.items()}
@@ -336,7 +338,8 @@ def evaluate_test_data_qualitatively(datapath, reconpath, save_dir="qualitative_
             print(f"Evaluating {fname}...")
 
             # Load ground truth and reconstruction
-            gt = f_gt["reconstruction_rss"][:]
+            kspace = f_gt["kspace"][:]  # Load k-space
+            gt = np.fft.ifftshift(np.fft.ifft2(np.fft.fftshift(kspace)))
             recon = f_recon["reconstruction"][:]
             gt = center_crop(gt, recon.shape[1:])  # Crop ground truth to match reconstruction size
 
@@ -345,23 +348,25 @@ def evaluate_test_data_qualitatively(datapath, reconpath, save_dir="qualitative_
             gt_slice = gt[center_slice_idx]
             recon_slice = recon[center_slice_idx]
 
+            gt_slice = np.squeeze(gt[center_slice_idx])
+
             # Compute magnitude, phase, real, imaginary
             gt_mag, gt_phase, gt_real, gt_imag = np.abs(gt_slice), np.angle(gt_slice), np.real(gt_slice), np.imag(gt_slice)
             recon_mag, recon_phase, recon_real, recon_imag = np.abs(recon_slice), np.angle(recon_slice), np.real(recon_slice), np.imag(recon_slice)
-
-
+            
             # Store all components
             gt_components = [gt_mag, gt_phase, gt_real, gt_imag]
             recon_components = [recon_mag, recon_phase, recon_real, recon_imag]
             titles = ["Magnitude", "Phase", "Real", "Imaginary"]
+            cmaps = ["gray", "gray", "gray", "gray"]  
 
             # Plot results
             fig, axes = plt.subplots(4, 2, figsize=(10, 12))
 
             for j in range(4):
-                axes[j, 0].imshow(np.squeeze(gt_components[j]), cmap="gray", vmin=0, vmax=1)
+                axes[j, 0].imshow(gt_components[j], cmap=cmaps[j])
                 axes[j, 0].set_title(f"GT {titles[j]}")
-                axes[j, 1].imshow(np.squeeze(recon_components[j]), cmap="gray", vmin=0, vmax=1)
+                axes[j, 1].imshow(recon_components[j], cmap=cmaps[j])
                 axes[j, 1].set_title(f"Reconstructed {titles[j]}")
 
                 for ax in axes[j]:
