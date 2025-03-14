@@ -95,8 +95,8 @@ def build_args():
     parser = ArgumentParser()
 
     # basic args
-    # path_config = pathlib.Path("save_model/fastmri_dirs.yaml")
-    path_config = pathlib.Path("/content/gdrive/MyDrive/DL_4_MI/Assigment3/save_model/fastmri_dirs.yaml")
+    path_config = pathlib.Path("save_model/fastmri_dirs.yaml")
+    #path_config = pathlib.Path("/content/gdrive/MyDrive/DL_4_MI/Assigment3/save_model/fastmri_dirs.yaml")
     num_gpus = 1
     batch_size = 1
 
