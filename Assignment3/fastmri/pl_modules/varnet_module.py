@@ -43,6 +43,7 @@ class VarNetModule(MriModule):
         lr_step_size: int = 40,
         lr_gamma: float = 0.1,
         weight_decay: float = 0.0,
+        interpolation_method: str = "nearest",
         **kwargs,
     ):
         """
@@ -81,6 +82,7 @@ class VarNetModule(MriModule):
         self.lr_step_size = lr_step_size
         self.lr_gamma = lr_gamma
         self.weight_decay = weight_decay
+        self.interpolation_method = interpolation_method
 
         self.varnet = VarNet(
             num_cascades=self.num_cascades,
@@ -88,12 +90,14 @@ class VarNetModule(MriModule):
             sens_pools=self.sens_pools,
             chans=self.chans,
             pools=self.pools,
+            interpolation_method=self.interpolation_method,
         )
 
         self.loss = fastmri.SSIMLoss()
 
     def forward(self, masked_kspace, mask, num_low_frequencies):
-        return self.varnet(masked_kspace, mask, num_low_frequencies)
+        interpolated_kspace = self.varnet.interpolate_kspace(masked_kspace, mask)
+        return self.varnet(interpolated_kspace, mask, num_low_frequencies)
 
     def training_step(self, batch, batch_idx):
         output = self(batch.masked_kspace, batch.mask, batch.num_low_frequencies)

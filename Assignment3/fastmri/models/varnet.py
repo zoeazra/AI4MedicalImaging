@@ -11,6 +11,8 @@ from typing import List, Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from scipy.interpolate import griddata
+import numpy as np
 
 import fastmri
 from fastmri.data import transforms
@@ -239,6 +241,7 @@ class VarNet(nn.Module):
         chans: int = 18,
         pools: int = 4,
         mask_center: bool = True,
+        interpolation_method: str= 'nearest',
     ):
         """
         Args:
@@ -263,6 +266,58 @@ class VarNet(nn.Module):
         self.cascades = nn.ModuleList(
             [VarNetBlock(NormUnet(chans, pools)) for _ in range(num_cascades)]
         )
+        self.interpolation_method = interpolation_method 
+    
+    def interpolate_kspace(self, kspace: torch.Tensor, mask: torch.Tensor, method="nearest") -> torch.Tensor:
+        """
+        Interpolates missing k-space values using nearest-neighbor or cubic spline.
+        
+        Args:
+            kspace (torch.Tensor): The undersampled k-space of shape (batch, coils, H, W, 2).
+            mask (torch.Tensor): Binary mask indicating sampled points (1) and missing points (0).
+            method (str): Interpolation method ('nearest' or 'cubic').
+
+        Returns:
+            torch.Tensor: Interpolated k-space.
+        """
+
+        kspace_np = kspace.cpu().numpy()
+        mask_np = mask.cpu().numpy()
+
+        batch_size, num_coils, H, W, _ = kspace.shape
+        kspace_interp = np.zeros_like(kspace_np)
+
+        # Generate grid coordinates
+        x = np.arange(W)
+        y = np.arange(H)
+        X, Y = np.meshgrid(x, y)
+
+        for b in range(batch_size):
+            for c in range(num_coils):
+                # Extract real and imaginary parts separately
+                k_real = kspace_np[b, c, ..., 0]
+                k_imag = kspace_np[b, c, ..., 1]
+
+                # Find known (sampled) indices
+                known_indices = np.where(mask_np[b, c, ..., 0] == 1)
+
+                # Get sampled points and their corresponding k-space values
+                known_points = np.array([X[known_indices], Y[known_indices]]).T
+                known_values_real = k_real[known_indices]
+                known_values_imag = k_imag[known_indices]
+
+                # Find all grid points (full k-space)
+                all_points = np.array([X.ravel(), Y.ravel()]).T
+
+                # Interpolate missing values
+                interp_real = griddata(known_points, known_values_real, all_points, method=method)
+                interp_imag = griddata(known_points, known_values_imag, all_points, method=method)
+
+                # Reshape to original k-space dimensions
+                kspace_interp[b, c, ..., 0] = interp_real.reshape(H, W)
+                kspace_interp[b, c, ..., 1] = interp_imag.reshape(H, W)
+
+        return torch.tensor(kspace_interp, dtype=kspace.dtype, device=kspace.device)
 
     def forward(
         self,
@@ -271,7 +326,8 @@ class VarNet(nn.Module):
         num_low_frequencies: Optional[int] = None,
     ) -> torch.Tensor:
         sens_maps = self.sens_net(masked_kspace, mask, num_low_frequencies)
-        kspace_pred = masked_kspace.clone()
+        interpolated_kspace = self.interpolate_kspace(masked_kspace, mask)
+        kspace_pred = interpolated_kspace.clone()
 
         for cascade in self.cascades:
             kspace_pred = cascade(kspace_pred, masked_kspace, mask, sens_maps)
@@ -313,9 +369,11 @@ class VarNetBlock(nn.Module):
         ref_kspace: torch.Tensor,
         mask: torch.Tensor,
         sens_maps: torch.Tensor,
+        interpolation_method="nearest",
     ) -> torch.Tensor:
         zero = torch.zeros(1, 1, 1, 1, 1).to(current_kspace)
         soft_dc = torch.where(mask, current_kspace - ref_kspace, zero) * self.dc_weight
+
         model_term = self.sens_expand(
             self.model(self.sens_reduce(current_kspace, sens_maps)), sens_maps
         )

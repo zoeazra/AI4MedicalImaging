@@ -69,6 +69,7 @@ def cli_main(args):
         lr_step_size=args.lr_step_size,
         lr_gamma=args.lr_gamma,
         weight_decay=args.weight_decay,
+        interpolation_method=args.interpolation_method,
     )
     # model = model.double()
     # ------------
@@ -157,6 +158,14 @@ def build_args():
         default=10,
         type=int,
         help="Number of epochs to train",
+    )
+
+    parser.add_argument(
+        "--interpolation_method",
+        default="nearest",
+        choices=("nearest", "cubic"),
+        type=str,
+        help="Interpolation method for missing k-space values",
     )
 
     # data config
