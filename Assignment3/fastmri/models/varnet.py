@@ -312,12 +312,19 @@ class VarNet(nn.Module):
                 # Interpolate missing values
                 interp_real = griddata(known_points, known_values_real, all_points, method=method)
                 interp_imag = griddata(known_points, known_values_imag, all_points, method=method)
+                interp_real[np.isnan(interp_real)] = 0
+                interp_imag[np.isnan(interp_imag)] = 0
 
                 # Reshape to original k-space dimensions
                 kspace_interp[b, c, ..., 0] = interp_real.reshape(H, W)
                 kspace_interp[b, c, ..., 1] = interp_imag.reshape(H, W)
 
-        return torch.tensor(kspace_interp, dtype=kspace.dtype, device=kspace.device)
+
+        kspace_interp = torch.tensor(kspace_interp, dtype=kspace.dtype, device=kspace.device)
+        # Ensure mask shape matches kspace before applying it
+        mask = mask.to(kspace.dtype)  # Ensures the mask is of the same type as kspace
+        kspace_interp = kspace_interp * (1 - mask) + kspace * mask
+        return kspace_interp
 
     def forward(
         self,
@@ -325,8 +332,9 @@ class VarNet(nn.Module):
         mask: torch.Tensor,
         num_low_frequencies: Optional[int] = None,
     ) -> torch.Tensor:
-        sens_maps = self.sens_net(masked_kspace, mask, num_low_frequencies)
         interpolated_kspace = self.interpolate_kspace(masked_kspace, mask)
+        sens_maps = self.sens_net(interpolated_kspace, mask, num_low_frequencies)
+        
         kspace_pred = interpolated_kspace.clone()
 
         for cascade in self.cascades:
@@ -369,7 +377,6 @@ class VarNetBlock(nn.Module):
         ref_kspace: torch.Tensor,
         mask: torch.Tensor,
         sens_maps: torch.Tensor,
-        interpolation_method="nearest",
     ) -> torch.Tensor:
         zero = torch.zeros(1, 1, 1, 1, 1).to(current_kspace)
         soft_dc = torch.where(mask, current_kspace - ref_kspace, zero) * self.dc_weight
