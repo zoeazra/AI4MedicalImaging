@@ -155,11 +155,10 @@ def build_args():
     parser.add_argument(
         "--interpolation_method",
         default="nearest",
-        choices=("nearest", "cubic"),
+        choices=("nearest", "fourier", "bspline", "rbf"),
         type=str,
         help="Interpolation method for missing k-space values",
     )
-
     # data config
     parser = FastMriDataModule.add_data_specific_args(parser)
     parser.set_defaults(
@@ -314,7 +313,7 @@ def evaluate_test_data_quantitatively(datapath, reconpath):
     return
 
 
-def evaluate_test_data_qualitatively(datapath, reconpath, save_dir="qualitative_results"):
+def evaluate_test_data_qualitatively(datapath, reconpath, save_dir="qualitative_results_rbf4"):
     #######################
     # Start YOUR CODE    #
     #######################

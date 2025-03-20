@@ -96,7 +96,7 @@ class VarNetModule(MriModule):
         self.loss = fastmri.SSIMLoss()
 
     def forward(self, masked_kspace, mask, num_low_frequencies):
-        interpolated_kspace = self.varnet.interpolate_kspace(masked_kspace, mask)
+        interpolated_kspace = self.varnet.interpolate_kspace(masked_kspace, mask, self.interpolation_method)
         return self.varnet(interpolated_kspace, mask, num_low_frequencies)
 
     def training_step(self, batch, batch_idx):

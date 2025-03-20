@@ -163,7 +163,7 @@ def build_args():
     parser.add_argument(
         "--interpolation_method",
         default="nearest",
-        choices=("nearest", "cubic"),
+        choices=("nearest", "fourier", "bspline", "rbf"),
         type=str,
         help="Interpolation method for missing k-space values",
     )

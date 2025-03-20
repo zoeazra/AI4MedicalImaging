@@ -11,7 +11,8 @@ from typing import List, Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from scipy.interpolate import griddata
+from scipy.interpolate import griddata, interp2d, Rbf
+from scipy.fft import fft2, ifft2
 import numpy as np
 
 import fastmri
@@ -268,7 +269,7 @@ class VarNet(nn.Module):
         )
         self.interpolation_method = interpolation_method 
     
-    def interpolate_kspace(self, kspace: torch.Tensor, mask: torch.Tensor, method="nearest") -> torch.Tensor:
+    def interpolate_kspace(self, kspace: torch.Tensor, mask: torch.Tensor, method: str) -> torch.Tensor:
         """
         Interpolates missing k-space values using nearest-neighbor or cubic spline.
         
@@ -280,6 +281,7 @@ class VarNet(nn.Module):
         Returns:
             torch.Tensor: Interpolated k-space.
         """
+        print(f"Interpolating with method: {method}")
 
         kspace_np = kspace.cpu().numpy()
         mask_np = mask.cpu().numpy()
@@ -309,11 +311,48 @@ class VarNet(nn.Module):
                 # Find all grid points (full k-space)
                 all_points = np.array([X.ravel(), Y.ravel()]).T
 
-                # Interpolate missing values
-                interp_real = griddata(known_points, known_values_real, all_points, method=method)
-                interp_imag = griddata(known_points, known_values_imag, all_points, method=method)
-                interp_real[np.isnan(interp_real)] = 0
-                interp_imag[np.isnan(interp_imag)] = 0
+                if method == 'nearest':
+                    # Nearest-neighbor interpolation
+                    interp_real = griddata(known_points, known_values_real, all_points, method='nearest')
+                    interp_imag = griddata(known_points, known_values_imag, all_points, method='nearest')
+
+
+                elif method == 'bspline':
+                    # B-spline interpolation using scipy interp2d (cubic)
+                    interpolator_real = interp2d(X[0], Y[:, 0], k_real, kind='cubic')
+                    interpolator_imag = interp2d(X[0], Y[:, 0], k_imag, kind='cubic')
+
+                    interp_real = interpolator_real(x, y)
+                    interp_imag = interpolator_imag(x, y)
+
+                elif method == 'fourier':
+                    # Fourier interpolation: Perform Fourier interpolation
+                    k_real_fft = fft2(k_real)
+                    k_imag_fft = fft2(k_imag)
+                    
+                    # Apply zero-padding or other interpolation techniques in frequency space
+                    k_real_interp = ifft2(k_real_fft)
+                    k_imag_interp = ifft2(k_imag_fft)
+
+                    interp_real = np.real(k_real_interp)
+                    interp_imag = np.real(k_imag_interp)
+
+                elif method == 'rbf':
+                    known_x, known_y = known_points[:, 0], known_points[:, 1]
+                    missing_indices = np.where(mask_np[b, c, ..., 0] == 0)
+                    missing_x, missing_y = X[missing_indices], Y[missing_indices]
+
+                    # RBF interpolation for real and imaginary components
+                    rbf_real = Rbf(known_x, known_y, known_values_real, function='multiquadric', smooth=0.1)
+                    rbf_imag = Rbf(known_x, known_y, known_values_imag, function='multiquadric', smooth=0.1)
+
+                    # Pre-fill output with original values
+                    interp_real = k_real.copy()
+                    interp_imag = k_imag.copy()
+
+                    # Interpolate only missing values
+                    interp_real[missing_indices] = rbf_real(missing_x, missing_y)
+                    interp_imag[missing_indices] = rbf_imag(missing_x, missing_y)
 
                 # Reshape to original k-space dimensions
                 kspace_interp[b, c, ..., 0] = interp_real.reshape(H, W)
@@ -332,7 +371,7 @@ class VarNet(nn.Module):
         mask: torch.Tensor,
         num_low_frequencies: Optional[int] = None,
     ) -> torch.Tensor:
-        interpolated_kspace = self.interpolate_kspace(masked_kspace, mask)
+        interpolated_kspace = self.interpolate_kspace(masked_kspace, mask, self.interpolation_method)
         sens_maps = self.sens_net(interpolated_kspace, mask, num_low_frequencies)
         
         kspace_pred = interpolated_kspace.clone()
