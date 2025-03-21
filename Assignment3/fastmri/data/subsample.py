@@ -53,7 +53,7 @@ class MaskFunc:
         center_fractions: Sequence[float],
         accelerations: Sequence[int],
         allow_any_combination: bool = False,
-        seed: Optional[int] = None,
+        seed: Optional[int] = 42,
     ):
         """
         Args:
@@ -83,7 +83,7 @@ class MaskFunc:
         self,
         shape: Sequence[int],
         offset: Optional[int] = None,
-        seed: Optional[Union[int, Tuple[int, ...]]] = None,
+        seed: Optional[Union[int, Tuple[int, ...]]] = 42,
     ) -> Tuple[torch.Tensor, int]:
         """
         Sample and return a k-space mask.
