@@ -11,7 +11,7 @@ from typing import List, Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from scipy.interpolate import griddata, interp2d, Rbf
+from scipy.interpolate import griddata, interp2d, Rbf, RectBivariateSpline
 from scipy.fft import fft2, ifft2
 import numpy as np
 
@@ -319,11 +319,14 @@ class VarNet(nn.Module):
 
                 elif method == 'bspline':
                     # B-spline interpolation using scipy interp2d (cubic)
-                    interpolator_real = interp2d(X[0], Y[:, 0], k_real, kind='cubic')
-                    interpolator_imag = interp2d(X[0], Y[:, 0], k_imag, kind='cubic')
+                    #interpolator_real = interp2d(X[0], Y[:, 0], k_real, kind='cubic')
+                    #interpolator_imag = interp2d(X[0], Y[:, 0], k_imag, kind='cubic')
+                    interpolator_real = RectBivariateSpline(Y[:, 0], X[0], k_real, kx=3, ky=3)
+                    interpolator_imag = RectBivariateSpline(Y[:, 0], X[0], k_imag, kx=3, ky=3)
 
-                    interp_real = interpolator_real(x, y)
-                    interp_imag = interpolator_imag(x, y)
+
+                    interp_real = interpolator_real(y, x)
+                    interp_imag = interpolator_imag(y, x)
 
                 elif method == 'fourier':
                     # Fourier interpolation: Perform Fourier interpolation
@@ -373,6 +376,7 @@ class VarNet(nn.Module):
     ) -> torch.Tensor:
         interpolated_kspace = self.interpolate_kspace(masked_kspace, mask, self.interpolation_method)
         sens_maps = self.sens_net(interpolated_kspace, mask, num_low_frequencies)
+        sens_maps = self.sens_net(masked_kspace, mask, num_low_frequencies)
         
         kspace_pred = interpolated_kspace.clone()
 
