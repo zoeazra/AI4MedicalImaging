@@ -281,7 +281,6 @@ class VarNet(nn.Module):
         Returns:
             torch.Tensor: Interpolated k-space.
         """
-        print(f"Interpolating with method: {method}")
 
         kspace_np = kspace.cpu().numpy()
         mask_np = mask.cpu().numpy()
@@ -318,9 +317,6 @@ class VarNet(nn.Module):
 
 
                 elif method == 'bspline':
-                    # B-spline interpolation using scipy interp2d (cubic)
-                    #interpolator_real = interp2d(X[0], Y[:, 0], k_real, kind='cubic')
-                    #interpolator_imag = interp2d(X[0], Y[:, 0], k_imag, kind='cubic')
                     interpolator_real = RectBivariateSpline(Y[:, 0], X[0], k_real, kx=3, ky=3)
                     interpolator_imag = RectBivariateSpline(Y[:, 0], X[0], k_imag, kx=3, ky=3)
 
