@@ -1,60 +1,77 @@
 
-# AI for medical imaging course
-This GIT contains the exercises and examples from the UvA/VU AI for medical imaging course.
-Please perform the exercise with your own code. You are not allowed to copy (large chuncks) of code from fellow students, from the internet, or from elsewhere.
-Please do not share your code or make your code public.
-You are allowed to help fellow students by nudging them in the right direction.
+# Deep Learning for Medical Imaging
+The following projects were implemented as part of the course "Deep Learning for Medical Imaging" at the VU Amsterdam. 
 
-## Getting started
-Here are some beginner friendly steps to get started with the assignments. 
+## 📁 Assignments Overview
 
-### 1.	Download a code editor
-_Why? A code editor is useful for writing, editing, and managing code efficiently. Just like you need the program Word to open a .docx document, you need an editor to open a .py or .ipynb document._
+1. **Assignment 1** – IVIM Parameter Estimation using PyTorch  
+   Implement a neural network from scratch to estimate the perfusion fraction `f` from diffusion-weighted MRI signals based on the IVIM model.
+2. **Assignment 2** – Skin Lesion Classification and Regression (ISIC 2019 Challenge)  
+   In this assignment, we implemented two deep learning models for classifying dermoscopic images from the ISIC 2019 dataset: a **custom convolutional neural network (CustomConvNet)** and a **transfer learning model based on ResNet50 (TransConvNet)**.
 
-In this walkthrough I will be working with PyCharm, which can be downloaded [here](https://www.jetbrains.com/pycharm/download/?section=mac). You can set up a [student account](https://www.jetbrains.com/community/education/#students) so that you have a free license to use it, or just use the free trial. 
+   For the CustomConvNet, we improved upon a baseline by:
+   - Increasing depth to five convolutional layers (32→512 filters)
+   - Adding a **skip connection** to improve gradient flow
+   - Replacing ReLU with **LeakyReLU** to avoid dead neurons
+   - Incorporating **global average pooling**, dropout, and dense layers for better regularization and classification
 
-Feel free to download or use the editor you like, examples are [Spyder](https://www.spyder-ide.org/) and [VS code](https://code.visualstudio.com/download).
+   For the transfer learning approach, we fine-tuned a **pretrained ResNet50** by:
+   - Replacing the final fully connected layer with a custom classifier
+   - Freezing early layers while allowing the last residual block to be trainable
+   - Using **data augmentation** (flips and Gaussian blur) to improve generalization
 
-### 2.	Download the codebase of the course
-_Why? You need to do this step so that you don’t have to cut and paste the code, we designed easy to use notebooks for you to make running the code easy._
+   To prioritize recall and penalize false negatives, we used **Focal Tversky Loss** in both models, which is especially suitable for medical data where missing a diagnosis is critical.
 
-You are currently in the right GitHub project. To download the code, click on the green button <> code. Then, click Download ZIP. Unpack the zipfile in a folder where you want to put your code. 
+   For segmentation, we also implemented a **modified U-Net** architecture:
+   - We added **padding** to preserve spatial dimensions
+   - Applied **1×1 convolutional layers** in skip connections to refine encoder features
+   - Used **LeakyReLU** instead of ReLU and added **batch normalization** for stable training
+   - Included **dropout** in the bottleneck for regularization
 
-Note that you can also [git clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) the repository, if that is more familiar to you. 
+   Among the different loss functions tested (Dice, Focal Tversky, BCE), **Binary Cross-Entropy (BCE)** yielded the best balance of stability and segmentation accuracy.
 
-### 3.	Open the codebase with your editor
-Now open your editor, in this walkthrough I am using PyCharm. Click file > open > Then choose the project map you have just downloaded. 
+   **Results:**  
+   - TransConvNet achieved the highest overall performance, with better **accuracy and F1-score**
+   - CustomConvNet improved recall over the baseline and showed strong robustness with the new architecture and loss
+   - U-Net achieved a final validation accuracy of ~0.94 and F1-score around 0.85, with steadily improving precision and recall throughout training
 
-This will open the full folder in your code editor, instead of just one file. This is needed so that you have everything in one place, and files that depend on other files can access each other. 
+   Overall, our improvements in architecture, training strategy, and loss functions helped both classification and segmentation models generalize well to unseen medical images.
 
-### 4.	Create a virtual environment
-_Why? Using virtual environments in Python is essential for managing package dependencies and avoiding conflicts between different projects. Ideally, you create a new python environment for every project you do._
+3. **Assignment 3** – Exploring the Impact of K-Space Interpolation and Masking Acceleration on MRI Reconstruction Using VarNet  
+   In this assignment, we investigated how different **k-space interpolation methods** impact the performance of **VarNet**, a deep-learning-based MRI reconstruction network. MRI data is naturally acquired in the frequency domain (k-space), and to accelerate acquisition, it is common practice to **undersample** this space using masks with **acceleration factors** (AF) such as 4, 6, and 8. Instead of relying solely on VarNet to recover missing data, we explored **pre-filling missing k-space values using interpolation** before feeding the data into the network.
 
-When I open the project in PyCharm, I get a pop up asking if I want to create an environment. Here, I click OK. A new folder has now been created called .venv. 
-In the bottom right corner, you will see \<No interpreter>. Click on that, and select the python environment you have just created.
+   We tested the following interpolation techniques:
+   - **Nearest Neighbor (NN)**  
+   - **Cubic Spline (B-spline)**  
+   - **Fourier Interpolation**  
+   - **Radial Basis Function (RBF)**  
 
-If you don’t get this pop up, that’s fine, we will walk through it manually.  You still want to click on the  \<no interpreter> button in the bottom right corner. You need to click on Add new interpreter > add local interpreter. Click OK. 
+   **Pipeline Overview:**  
+   1. Load fully sampled k-space and image data  
+   2. Apply undersampling mask (AF = 4, 6, 8)  
+   3. Interpolate missing k-space values using one of the above methods  
+   4. Estimate coil sensitivity maps  
+   5. Feed pre-processed data into VarNet  
+   6. Generate reconstructed MRI image  
+   7. Evaluate performance using both **quantitative and qualitative metrics**  
 
-Note that you can also create a virtual environment through a terminal. You can do this with [venv](https://docs.python.org/3/library/venv.html) or [anaconda](https://docs.conda.io/projects/conda/en/latest/user-guide/getting-started.html).
+   **Quantitative Evaluation Metrics:**  
+   - **PSNR (Peak Signal-to-Noise Ratio):** Measures reconstruction fidelity in terms of peak vs. noise  
+   - **NMSE (Normalized Mean Squared Error):** Captures relative reconstruction error  
+   - **SSIM (Structural Similarity Index):** Assesses perceptual similarity in terms of luminance, contrast, and structure  
 
-### 5.	Install the requirements
-_What and why? Requirements.txt is a file in the codebase that contains the names of packages that are needed to run the code that we have provided for you. Since you just created a new environment, it means that you don’t have any packages at all and we need to install them._
+   **Qualitative Evaluation:**  
+   We also performed visual comparisons of the reconstructed images with ground truth magnitude images to assess how well structural details were preserved.
 
-In order to install the requirements, please open a terminal. Every code editor has a different way of opening a terminal so you might need to google it. In PyCharm you click view > tool windows > terminal. 
+   **Results & Observations:**  
+   - **Fourier interpolation** consistently provided the best initial reconstructions, preserving the frequency domain’s structure and symmetry.
+   - **Nearest Neighbor** interpolation performed the worst due to its simplicity, failing to reconstruct meaningful values in regions with sparse samples.
+   - **B-spline interpolation** introduced ghosting and shadow artifacts due to oversmoothing, particularly at higher acceleration factors.
+   - **RBF interpolation** offered a balanced performance, though it struggled with sharp frequency transitions.
 
-In the bottom of your editor, a terminal is now opened. Here, you need to type: 
+   Interestingly, despite clear differences in the initial interpolated k-space, **all final reconstructions became visually and quantitatively similar after VarNet processing**, showcasing the model’s **robust learned regularization and data consistency** steps. This suggests that VarNet is able to correct for imperfections introduced by different interpolation methods through its iterative refinement process.
 
-```pip install -r requirements.txt```
-
-and run it.
-
-If you get an error, the solution is to go to your requirements.txt file and remove the version numbers. Save the file, and run the command pip install -r requirements.txt in your terminal again. It should now start to download the packages. 
-
-### 6.	Open the assignment
-Once everything is installed, it means you can try to run the code! In your folder structure, open assignment 1 > exercise_1.ipynb. You see that a notebook has now been opened. Here, the exercise is described again and it also contains the code. 
-
-If you scroll down, try to run the first codeblock that contains all the imports. If all goes well, you see a green check. It means that you are now good to go! Good luck with the exercises :) 
-
+   Overall, our results highlight the power of VarNet in MRI reconstruction and suggest that while interpolation may slightly influence early representations, the network compensates effectively across cascades, especially at lower acceleration factors.
 
 
 
